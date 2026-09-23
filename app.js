@@ -3,7 +3,8 @@
     $ = (q, r = document) => r.querySelector(q),
     app = $('#app');
   let data = read(),
-    active = null;
+    active = null,
+    reorderMode = false;
   function read() {
     try {
       let d = JSON.parse(localStorage.getItem(KEY) || '{}');
@@ -26,23 +27,70 @@
   }
   function total(w) {
     return w.type === 'barbell'
-      ? w.bar + 2 * w.side
+      ? w.bar === 0
+        ? w.side
+        : w.bar + 2 * w.side
       : w.type === 'dumbbell'
         ? w.count * w.each
         : w.type === 'kettlebell'
           ? w.kg
-          : 0;
+          : w.type === 'plates'
+            ? Number(w.integer) + Number(w.fraction)
+            : 0;
   }
   function loadText(w) {
-    return w.type === 'body'
-      ? 'Body weight'
-      : `${w.type === 'dumbbell' && w.count === 2 ? '2 × ' : ''}${total(w)} kg`;
+    if (w.type === 'body') return 'Body weight';
+    const weight = total(w);
+    const displayWeight =
+      w.type === 'plates' && Number.isInteger(weight) ? weight.toFixed(1) : weight;
+    return `${w.type === 'dumbbell' && w.count === 2 ? '2 × ' : ''}${displayWeight} kg`;
   }
   function sessionTitle(date) {
     return new Date(date).toLocaleString(undefined, {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
+  }
+  function exerciseHistory(name) {
+    const matches = data.sessions.flatMap((session) =>
+      session.exercises
+        .filter(
+          (exercise) =>
+            String(exercise.name || '')
+              .trim()
+              .toLowerCase() === name.toLowerCase(),
+        )
+        .map((exercise) => ({
+          session,
+          exercise,
+          weight: total(exercise.weight || { type: 'body' }),
+        })),
+    );
+    if (!matches.length) return '<p class="exercise-history-first">First time ever!</p>';
+    matches.sort((a, b) => new Date(a.session.date) - new Date(b.session.date));
+    const record = matches.reduce((best, current) =>
+      current.weight >= best.weight ? current : best,
+    );
+    const latest = matches.at(-1);
+    const daysAgo = (date) => {
+      const day = new Date(date);
+      const today = new Date();
+      const startOfToday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const startOfDay = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+      const days = Math.max(0, Math.floor((startOfToday - startOfDay) / 86400000));
+      return days === 0 ? 'Today' : `${days} day${days === 1 ? '' : 's'} ago`;
+    };
+    const weightText = (weight, exercise) =>
+      exercise.weight?.type === 'body'
+        ? 'Body weight'
+        : `${exercise.weight?.type === 'plates' && Number.isInteger(weight) ? weight.toFixed(1) : weight} kg`;
+    const recordText = `All-time record: ${weightText(record.weight, record.exercise)} · ${daysAgo(record.session.date)}`;
+    const latestText = `Last time: ${weightText(latest.weight, latest.exercise)} · ${daysAgo(latest.session.date)}`;
+    return `<p>${esc(recordText)}</p>${latest.session !== record.session ? `<p>${esc(latestText)}</p>` : ''}`;
   }
   function renderHome() {
     const ss = [...data.sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -68,10 +116,12 @@
       title: sessionTitle(date),
       exercises: [],
     };
+    reorderMode = false;
     renderActive();
   }
   function renderActive() {
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>${esc(active.title)}</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="section-title"><h2>Exercises</h2><span class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ${active.exercises.length < 2 ? 'disabled' : ''}>↻</button></span></div><div class="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><button class="add-exercise" id="add"><span>＋</span> Add exercise</button>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    const canReorder = active.exercises.length > 0;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>${esc(active.title)}</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="reorder-toolbar"><div class="reorder-controls"><button class="secondary" id="reorder" type="button" ${canReorder ? '' : 'disabled'}>${reorderMode ? 'Save' : 'Reorder'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="section-title"><h2>Exercises</h2><span>${active.exercises.length} added</span></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div>${reorderMode ? '' : `<div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div>`}</article>`).join('')}</div>${reorderMode ? '' : `<div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>`}${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     $('#back').onclick = () => {
       if (
         !active.exercises.length ||
@@ -82,14 +132,91 @@
         renderHome();
       }
     };
-    $('#add').onclick = () => exerciseForm();
-    $('#rotate-exercises').onclick = () => {
+    $('#reorder').onclick = () => {
+      reorderMode = !reorderMode;
+      renderActive();
+    };
+    $('#add')?.addEventListener('click', () => exerciseForm());
+    if (canReorder)
+      $('#scan-exercises')?.addEventListener('click', () =>
+        showSessionQr(active.exercises),
+      );
+    else $('#scan-exercises')?.addEventListener('click', openExerciseScanner);
+    $('#rotate-exercises')?.addEventListener('click', () => {
       if (active.exercises.length < 2) return;
       active.exercises.unshift(active.exercises.pop());
       renderActive();
-    };
+    });
+    $('#rotate-exercises-reverse')?.addEventListener('click', () => {
+      if (active.exercises.length < 2) return;
+      active.exercises.push(active.exercises.shift());
+      renderActive();
+    });
     $('#finish').onclick = finish;
     $('#finish-bottom')?.addEventListener('click', finish);
+    if (reorderMode) {
+      const list = $('#exercise-list');
+      let pointerDraggedIndex = null;
+      let pointerStartY = 0;
+      let pointerMoved = false;
+      let pointerCard = null;
+      list.querySelectorAll('.exercise-card').forEach((card) => {
+        const handle = $('.drag-handle', card);
+        handle.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          pointerDraggedIndex = Number(card.dataset.exerciseIndex);
+          pointerCard = card;
+          pointerStartY = event.clientY;
+          pointerMoved = false;
+          handle.setPointerCapture(event.pointerId);
+          card.classList.add('is-dragging');
+          card.style.setProperty('--drag-x', '0px');
+          card.style.setProperty('--drag-y', '0px');
+          card.dataset.pointerStartX = String(event.clientX);
+          card.dataset.pointerStartY = String(event.clientY);
+          event.preventDefault();
+        });
+        handle.addEventListener('pointermove', (event) => {
+          if (pointerDraggedIndex === null) return;
+          if (Math.abs(event.clientY - pointerStartY) > 5) pointerMoved = true;
+          if (!pointerMoved) return;
+          pointerCard.style.setProperty(
+            '--drag-x',
+            `${event.clientX - Number(pointerCard.dataset.pointerStartX)}px`,
+          );
+          pointerCard.style.setProperty(
+            '--drag-y',
+            `${event.clientY - Number(pointerCard.dataset.pointerStartY)}px`,
+          );
+          const target = document
+            .elementFromPoint(event.clientX, event.clientY)
+            ?.closest('.exercise-card');
+          if (!target || !list.contains(target)) return;
+          if (target === pointerCard) return;
+          const bounds = target.getBoundingClientRect();
+          const insertAfter = event.clientY > bounds.top + bounds.height / 2;
+          list.insertBefore(pointerCard, insertAfter ? target.nextSibling : target);
+        });
+        const finishPointerReorder = () => {
+          if (pointerDraggedIndex === null) return;
+          if (pointerMoved) {
+            active.exercises = [...list.querySelectorAll('.exercise-card')].map(
+              (item) => active.exercises[Number(item.dataset.exerciseIndex)],
+            );
+            renderActive();
+          }
+          pointerDraggedIndex = null;
+          pointerCard = null;
+          card.classList.remove('is-dragging');
+          card.style.removeProperty('--drag-x');
+          card.style.removeProperty('--drag-y');
+          delete card.dataset.pointerStartX;
+          delete card.dataset.pointerStartY;
+        };
+        handle.addEventListener('pointerup', finishPointerReorder);
+        handle.addEventListener('pointercancel', finishPointerReorder);
+      });
+    }
     app
       .querySelectorAll('[data-edit]')
       .forEach((b) => (b.onclick = () => exerciseForm(+b.dataset.edit)));
@@ -115,10 +242,21 @@
   function exerciseForm(index = null) {
     let ex =
       index === null
-        ? { name: '', sets: 3, reps: 10, weight: { type: 'body' } }
+        ? { name: '', sets: 1, reps: 1, weight: { type: 'body' } }
         : structuredClone(active.exercises[index]);
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"></div><div class="split-fields"><div class="field"><label for="sets">Sets</label><input class="number-input" id="sets" type="number" min="1" max="99" value="${ex.sets}" required></div><div class="field"><label for="reps">Repetitions</label><input class="number-input" id="reps" type="number" min="1" max="999" value="${ex.reps}" required></div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
+    const numberWheel = (
+      id,
+      label,
+      value,
+      values = Array.from({ length: 1000 }, (_, number) => number),
+      format = (number) => String(number).padStart(3, '0'),
+    ) => {
+      value = values.includes(Number(value)) ? Number(value) : values[0];
+      return `<div class="number-wheel" id="${id}" role="spinbutton" tabindex="0" aria-label="${label}" aria-valuemin="${values[0]}" aria-valuemax="${values.at(-1)}" aria-valuenow="${value}" aria-valuetext="${value}" data-value="${value}"><div class="number-wheel-viewport"><div class="number-wheel-list">${values.map((number, index) => `<div class="number-wheel-item${number === value ? ' is-selected' : ''}" data-index="${index}" data-value="${number}" aria-hidden="true">${format(number)}</div>`).join('')}</div></div></div>`;
+    };
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets)}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps)}</div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
       ['body', 'Body'],
+      ['plates', 'Plates'],
       ['barbell', 'Barbell'],
       ['dumbbell', 'Dumbbell'],
       ['kettlebell', 'Kettlebell'],
@@ -133,6 +271,92 @@
     const form = $('#form');
     $('#form-back').onclick = renderActive;
     $('#cancel').onclick = renderActive;
+    $('#toggle-name-lock').onclick = (event) => {
+      const button = event.currentTarget;
+      const input = $('#name', form);
+      if (input) {
+        const name = input.value.trim();
+        if (!name) {
+          input.reportValidity();
+          return;
+        }
+        const label = document.createElement('span');
+        label.id = 'name-label';
+        label.className = 'locked-exercise-name';
+        label.textContent = name;
+        input.replaceWith(label);
+        const history = $('#exercise-history', form);
+        history.innerHTML = exerciseHistory(name);
+        history.hidden = false;
+        button.textContent = '✏️';
+        button.setAttribute('aria-label', 'Edit exercise name');
+        button.title = 'Edit exercise name';
+      } else {
+        const label = $('#name-label', form);
+        const editable = document.createElement('input');
+        editable.id = 'name';
+        editable.className = 'text-input';
+        editable.setAttribute('list', 'exercise-suggestions');
+        editable.value = label.textContent;
+        editable.placeholder = 'e.g. Goblet squat';
+        editable.required = true;
+        editable.maxLength = 60;
+        editable.autocomplete = 'off';
+        label.replaceWith(editable);
+        $('#exercise-history', form).hidden = true;
+        button.textContent = '💾';
+        button.setAttribute('aria-label', 'Save exercise name');
+        button.title = 'Save exercise name';
+        editable.focus();
+      }
+    };
+    function setupNumberWheel(
+      id,
+      values = Array.from({ length: 1000 }, (_, number) => number),
+      onChange = null,
+    ) {
+      const wheel = $(`#${id}`, form);
+      const viewport = $('.number-wheel-viewport', wheel);
+      const items = viewport.querySelectorAll('.number-wheel-item');
+      let selected = values.indexOf(Number(wheel.dataset.value));
+      const updateSelected = (index) => {
+        index = Math.max(0, Math.min(values.length - 1, index));
+        items[selected].classList.remove('is-selected');
+        selected = index;
+        items[selected].classList.add('is-selected');
+        const value = values[selected];
+        wheel.dataset.value = String(value);
+        wheel.setAttribute('aria-valuenow', String(value));
+        wheel.setAttribute('aria-valuetext', String(value));
+        onChange?.(value);
+      };
+      viewport.addEventListener(
+        'scroll',
+        () => updateSelected(Math.round(viewport.scrollTop / 44)),
+        { passive: true },
+      );
+      viewport.addEventListener('click', (event) => {
+        const item = event.target.closest('[data-index]');
+        if (item) viewport.scrollTo({ top: Number(item.dataset.index) * 44 });
+      });
+      wheel.addEventListener('keydown', (event) => {
+        const steps = event.key === 'PageUp' || event.key === 'PageDown' ? 10 : 1;
+        let next;
+        if (event.key === 'ArrowUp' || event.key === 'PageUp') next = selected + steps;
+        else if (event.key === 'ArrowDown' || event.key === 'PageDown')
+          next = selected - steps;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = 999;
+        else return;
+        event.preventDefault();
+        viewport.scrollTo({ top: Math.max(0, Math.min(values.length - 1, next)) * 44 });
+      });
+      requestAnimationFrame(() => {
+        viewport.scrollTop = selected * 44;
+      });
+    }
+    setupNumberWheel('sets');
+    setupNumberWheel('reps');
     function panel() {
       let t = $('input[name=type]:checked', form).value,
         w = ex.weight,
@@ -142,16 +366,33 @@
           '<div class="total-box" style="border:0;margin:0;padding:0"><span>No external load</span><b>Body</b></div>';
         return;
       }
-      if (t === 'barbell') {
+      if (t === 'plates') {
+        const integerValues = Array.from({ length: 201 }, (_, value) => value);
+        const fractionValues = [0, 0.25, 0.5, 0.75];
+        const integer = w.type === 'plates' ? w.integer : 0;
+        const fraction = w.type === 'plates' ? w.fraction : 0;
+        const initialTotal = integer + fraction;
+        const formatPlateWeight = (value) =>
+          Number.isInteger(value) ? value.toFixed(1) : String(value);
+        p.innerHTML = `<div class="plates-wheels"><div class="plates-wheel-labels"><span>Whole kg</span><span>Fraction of kg</span></div><div class="plates-wheel-columns"><div class="plates-wheel-column">${numberWheel('plate-integer', 'Whole kilograms', integer, integerValues)}</div><div class="plates-wheel-column">${numberWheel('plate-fraction', 'Fractional kilograms', fraction, fractionValues, (value) => String(value))}</div></div></div><div class="total-box"><span>Total plates weight</span><b id="plates-total">${formatPlateWeight(initialTotal)} kg</b></div>`;
+        const updatePlatesTotal = () => {
+          const amount =
+            Number($('#plate-integer', form).dataset.value) +
+            Number($('#plate-fraction', form).dataset.value);
+          $('#plates-total').textContent = `${formatPlateWeight(amount)} kg`;
+        };
+        setupNumberWheel('plate-integer', integerValues, updatePlatesTotal);
+        setupNumberWheel('plate-fraction', fractionValues, updatePlatesTotal);
+      } else if (t === 'barbell') {
         let bar = w.type === 'barbell' ? w.bar : 20,
           side = w.type === 'barbell' ? w.side : 10;
-        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="weight-row"><label for="side">Per side</label><input id="side" type="range" min="0" max="100" step="2.5" value="${side}"><output id="side-val" class="range-value">${side} kg</output></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar + side * 2} kg</b></div>`;
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">X</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="weight-row"><label for="side">Per side</label><input id="side" type="range" min="0" max="100" step="2.5" value="${side}"><output id="side-val" class="range-value">${side} kg</output></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar === 0 ? side : bar + side * 2} kg</b></div>`;
         let up = () => {
           $('#side-val').value = $('#side').value + ' kg';
+          const selectedBar = +$('.choice-toggle [aria-pressed="true"]').dataset.bar;
+          const perSide = +$('#side').value;
           $('#total').textContent =
-            +$('.choice-toggle [aria-pressed="true"]').dataset.bar +
-            2 * +$('#side').value +
-            ' kg';
+            (selectedBar === 0 ? perSide : selectedBar + 2 * perSide) + ' kg';
         };
         p.querySelectorAll('[data-bar]').forEach((button) => {
           button.onclick = () => {
@@ -217,9 +458,24 @@
                     type: t,
                     kg: +$('#weight-panel [data-kg][aria-pressed="true"]').dataset.kg,
                   }
-                : { type: 'body' },
-        name = $('#name').value.trim();
-      let result = { name, sets: +$('#sets').value, reps: +$('#reps').value, weight };
+                : t === 'plates'
+                  ? {
+                      type: t,
+                      integer: Number($('#plate-integer', form).dataset.value),
+                      fraction: Number($('#plate-fraction', form).dataset.value),
+                    }
+                  : { type: 'body' },
+        name = (
+          $('#name', form)?.value ??
+          $('#name-label', form)?.textContent ??
+          ''
+        ).trim();
+      let result = {
+        name,
+        sets: Number($('#sets', form).dataset.value),
+        reps: Number($('#reps', form).dataset.value),
+        weight,
+      };
       if (index === null) active.exercises.push(result);
       else active.exercises[index] = result;
       if (!data.names.some((n) => n.toLowerCase() === name.toLowerCase()))
@@ -237,17 +493,139 @@
     location.hash = '#home';
     renderHome();
   }
+  const scanDialog = $('#scan-dialog');
+  let scanLibraryPromise = null;
+  let scanStream = null;
+  let scanAnimation = null;
+  function loadJsQr() {
+    if (window.jsQR) return Promise.resolve(window.jsQR);
+    if (!scanLibraryPromise) {
+      scanLibraryPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+        script.integrity =
+          'sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx';
+        script.crossOrigin = 'anonymous';
+        script.referrerPolicy = 'no-referrer';
+        script.onload = () =>
+          window.jsQR
+            ? resolve(window.jsQR)
+            : reject(new Error('QR scanning support did not load.'));
+        script.onerror = () => reject(new Error('Could not load QR scanning support.'));
+        document.head.append(script);
+      }).catch((error) => {
+        scanLibraryPromise = null;
+        throw error;
+      });
+    }
+    return scanLibraryPromise;
+  }
+  function stopExerciseScanner() {
+    if (scanAnimation !== null) cancelAnimationFrame(scanAnimation);
+    scanAnimation = null;
+    scanStream?.getTracks().forEach((track) => track.stop());
+    scanStream = null;
+    const video = $('#scan-video');
+    if (video) video.srcObject = null;
+  }
+  async function openExerciseScanner() {
+    scanDialog.showModal();
+    $('#scan-status').textContent = 'Loading scanner and requesting camera…';
+    try {
+      const jsQR = await loadJsQr();
+      if (!scanDialog.open) return;
+      if (!navigator.mediaDevices?.getUserMedia)
+        throw new Error('Camera access is not available in this browser.');
+      scanStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      if (!scanDialog.open) {
+        stopExerciseScanner();
+        return;
+      }
+      const video = $('#scan-video');
+      video.srcObject = scanStream;
+      await video.play();
+      $('#scan-status').textContent = 'Point the camera at an exercise QR code.';
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      const scanFrame = () => {
+        if (!scanDialog.open || !video.videoWidth) {
+          scanAnimation = requestAnimationFrame(scanFrame);
+          return;
+        }
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const image = context.getImageData(0, 0, canvas.width, canvas.height);
+        const result = jsQR(image.data, image.width, image.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        if (result) {
+          try {
+            const parsed = JSON.parse(result.data);
+            if (
+              !Array.isArray(parsed) ||
+              parsed.some((name) => typeof name !== 'string' || !name.trim())
+            ) {
+              throw new Error('The QR code must contain a JSON list of exercise names.');
+            }
+            const names = [...new Set(parsed.map((name) => name.trim()))];
+            if (!names.length) throw new Error('The QR code does not contain any names.');
+            for (const name of names) {
+              if (
+                !data.names.some(
+                  (savedName) => savedName.toLowerCase() === name.toLowerCase(),
+                )
+              )
+                data.names.push(name);
+              active.exercises.push({
+                name,
+                sets: 1,
+                reps: 1,
+                weight: { type: 'body' },
+              });
+            }
+            save();
+            updateNames();
+            stopExerciseScanner();
+            scanDialog.close();
+            renderActive();
+            return;
+          } catch (error) {
+            $('#scan-status').textContent =
+              error instanceof SyntaxError
+                ? 'This QR code is not valid JSON. Keep scanning or close the scanner.'
+                : error.message;
+          }
+        }
+        scanAnimation = requestAnimationFrame(scanFrame);
+      };
+      scanAnimation = requestAnimationFrame(scanFrame);
+    } catch (error) {
+      stopExerciseScanner();
+      $('#scan-status').textContent =
+        error.name === 'NotAllowedError'
+          ? 'Camera access was denied. Allow camera access and try again.'
+          : error.message || 'Could not open the camera.';
+    }
+  }
+  $('#close-scan').onclick = () => scanDialog.close();
+  scanDialog.addEventListener('close', stopExerciseScanner);
+  scanDialog.addEventListener('cancel', stopExerciseScanner);
   function renderSaved(id) {
     let s = data.sessions.find((x) => x.id === id);
     if (!s) {
       location.hash = '';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div><h1>${esc(s.title)}</h1><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises · ${s.exercises.reduce((n, e) => n + e.sets, 0)} sets</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><div class="exercise-list">${s.exercises.map((e) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div><h1>${esc(s.title)}</h1><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises · ${s.exercises.reduce((n, e) => n + e.sets, 0)} sets</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
     $('#saved-back').onclick = () => {
       location.hash = '#home';
       renderHome();
     };
+    $('#saved-show-qr').onclick = () => showSessionQr(s.exercises);
     $('#delete').onclick = () => {
       if (confirm('Delete this training session?')) {
         data.sessions = data.sessions.filter((x) => x.id !== id);
@@ -293,7 +671,7 @@
       url = URL.createObjectURL(blob),
       a = document.createElement('a');
     a.href = url;
-    a.download = `form-training-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `fit24-training-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     $('#dialog-status').textContent = 'Backup downloaded.';
@@ -305,7 +683,7 @@
         !Array.isArray(parsed.sessions) ||
         parsed.sessions.some((s) => !Array.isArray(s.exercises))
       )
-        throw Error('This file does not look like a Form backup.');
+        throw Error('This file does not look like a fit24 backup.');
       data.sessions = parsed.sessions;
       data.names = [
         ...new Set([
@@ -387,6 +765,37 @@
       status.textContent = error.message || 'Could not create a QR code.';
     }
   };
+  const sessionQrDialog = $('#session-qr-dialog');
+  $('#close-session-qr').onclick = () => sessionQrDialog.close();
+  sessionQrDialog.addEventListener('click', (event) => {
+    if (event.target === sessionQrDialog) sessionQrDialog.close();
+  });
+  async function showSessionQr(exercises) {
+    const namesJson = JSON.stringify(exercises.map((exercise) => exercise.name));
+    const target = $('#session-qr-code');
+    const status = $('#session-qr-status');
+    target.replaceChildren();
+    sessionQrDialog.showModal();
+    if (namesJson.length > 1200) {
+      status.textContent =
+        'This exercise list is too long for a QR code. Shorten some names to share it.';
+      return;
+    }
+    status.textContent = 'Preparing QR code…';
+    try {
+      const QRCode = await loadQrLibrary();
+      if (!sessionQrDialog.open) return;
+      new QRCode(target, {
+        text: namesJson,
+        width: 260,
+        height: 260,
+        correctLevel: QRCode.CorrectLevel.L,
+      });
+      status.textContent = `${exercises.length} exercise${exercises.length === 1 ? '' : 's'} in their current order.`;
+    } catch (error) {
+      status.textContent = error.message || 'Could not create a QR code.';
+    }
+  }
   $('#email-data').onclick = () => {
     let text =
         data.sessions
