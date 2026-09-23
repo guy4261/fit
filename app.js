@@ -676,6 +676,232 @@
     URL.revokeObjectURL(url);
     $('#dialog-status').textContent = 'Backup downloaded.';
   };
+  const csvColumns = [
+    'Session ID',
+    'Session date',
+    'Session title',
+    'Exercise order',
+    'Exercise name',
+    'Sets',
+    'Repetitions',
+    'Weight type',
+    'Bar kg',
+    'Per side kg',
+    'Dumbbells',
+    'Each kg',
+    'Kettlebell kg',
+    'Plates whole kg',
+    'Plates fraction kg',
+  ];
+  function csvCell(value) {
+    let text = String(value ?? '');
+    if (typeof value === 'string' && /^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
+    return `"${text.replaceAll('"', '""')}"`;
+  }
+  function sessionCsv() {
+    const rows = [csvColumns];
+    data.sessions.forEach((session) => {
+      const exercises = session.exercises.length ? session.exercises : [null];
+      exercises.forEach((exercise, order) => {
+        const weight = exercise?.weight || {};
+        rows.push([
+          session.id,
+          session.date,
+          session.title,
+          exercise ? order : '',
+          exercise?.name || '',
+          exercise?.sets ?? '',
+          exercise?.reps ?? '',
+          weight.type || '',
+          weight.type === 'barbell' ? weight.bar : '',
+          weight.type === 'barbell' ? weight.side : '',
+          weight.type === 'dumbbell' ? weight.count : '',
+          weight.type === 'dumbbell' ? weight.each : '',
+          weight.type === 'kettlebell' ? weight.kg : '',
+          weight.type === 'plates' ? weight.integer : '',
+          weight.type === 'plates' ? weight.fraction : '',
+        ]);
+      });
+    });
+    return '\uFEFF' + rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+  }
+  $('#export-csv').onclick = () => {
+    const blob = new Blob([sessionCsv()], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fit24-training-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    $('#dialog-status').textContent = 'Spreadsheet downloaded as a CSV file.';
+  };
+  function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    text = text.replace(/^\uFEFF/, '');
+    for (let i = 0; i < text.length; i += 1) {
+      const character = text[i];
+      if (inQuotes) {
+        if (character === '"' && text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else if (character === '"') {
+          inQuotes = false;
+        } else {
+          field += character;
+        }
+      } else if (character === '"' && field === '') {
+        inQuotes = true;
+      } else if (character === ',') {
+        row.push(field);
+        field = '';
+      } else if (character === '\n' || character === '\r') {
+        if (character === '\r' && text[i + 1] === '\n') i += 1;
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else {
+        field += character;
+      }
+    }
+    if (inQuotes) throw new Error('This CSV has an unfinished quoted field.');
+    if (field.length || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+    return rows;
+  }
+  function importCsv(text) {
+    const [headerRow, ...rows] = parseCsv(text);
+    if (!headerRow) throw new Error('This CSV file is empty.');
+    const headers = new Map(
+      headerRow.map((header, index) => [header.trim().toLowerCase(), index]),
+    );
+    const required = [
+      'session id',
+      'session date',
+      'session title',
+      'exercise order',
+      'exercise name',
+      'sets',
+      'repetitions',
+      'weight type',
+      'bar kg',
+      'per side kg',
+      'dumbbells',
+      'each kg',
+      'kettlebell kg',
+      'plates whole kg',
+      'plates fraction kg',
+    ];
+    if (required.some((header) => !headers.has(header)))
+      throw new Error('This CSV does not look like a fit24 spreadsheet.');
+    const readCell = (cells, label) => {
+      const value = cells[headers.get(label)]?.trim() || '';
+      return value.replace(/^'(?=[\t\r ]*[=+\-@])/, '');
+    };
+    const readNumber = (cells, label, fallback = 0) => {
+      const raw = readCell(cells, label);
+      if (!raw) return fallback;
+      const value = Number(raw);
+      if (!Number.isFinite(value)) throw new Error(`Invalid number in “${label}”.`);
+      return value;
+    };
+    const sessions = new Map();
+    rows.forEach((cells, rowIndex) => {
+      if (cells.every((cell) => !cell.trim())) return;
+      const date = readCell(cells, 'session date');
+      const title = readCell(cells, 'session title');
+      const parsedDate = new Date(date);
+      if (!date || !title || Number.isNaN(parsedDate.getTime()))
+        throw new Error(
+          `Missing or invalid session date/title on CSV row ${rowIndex + 2}.`,
+        );
+      const providedId = readCell(cells, 'session id');
+      const key = providedId || `${date}\u0000${title}`;
+      if (!sessions.has(key)) {
+        sessions.set(key, {
+          session: {
+            id: providedId || crypto.randomUUID?.() || String(Date.now() + rowIndex),
+            date: parsedDate.toISOString(),
+            title,
+            exercises: [],
+          },
+          exercises: [],
+        });
+      }
+      const exerciseName = readCell(cells, 'exercise name');
+      if (!exerciseName) return;
+      const weightType = readCell(cells, 'weight type').toLowerCase();
+      if (!['body', 'barbell', 'dumbbell', 'kettlebell', 'plates'].includes(weightType))
+        throw new Error(`Unknown weight type on CSV row ${rowIndex + 2}.`);
+      const weight =
+        weightType === 'barbell'
+          ? {
+              type: weightType,
+              bar: readNumber(cells, 'bar kg'),
+              side: readNumber(cells, 'per side kg'),
+            }
+          : weightType === 'dumbbell'
+            ? {
+                type: weightType,
+                count: readNumber(cells, 'dumbbells', 1),
+                each: readNumber(cells, 'each kg'),
+              }
+            : weightType === 'kettlebell'
+              ? { type: weightType, kg: readNumber(cells, 'kettlebell kg') }
+              : weightType === 'plates'
+                ? {
+                    type: weightType,
+                    integer: readNumber(cells, 'plates whole kg'),
+                    fraction: readNumber(cells, 'plates fraction kg'),
+                  }
+                : { type: 'body' };
+      sessions.get(key).exercises.push({
+        order: readNumber(cells, 'exercise order', rowIndex),
+        rowIndex,
+        exercise: {
+          name: exerciseName,
+          sets: readNumber(cells, 'sets', 1),
+          reps: readNumber(cells, 'repetitions', 1),
+          weight,
+        },
+      });
+    });
+    return [...sessions.values()].map(({ session, exercises }) => {
+      session.exercises = exercises
+        .sort((a, b) => a.order - b.order || a.rowIndex - b.rowIndex)
+        .map((item) => item.exercise);
+      return session;
+    });
+  }
+  $('#import-csv-file').onchange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const importedSessions = importCsv(await file.text());
+      const importedNames = importedSessions.flatMap((session) =>
+        session.exercises.map((exercise) => exercise.name),
+      );
+      data.sessions = importedSessions;
+      data.names = [
+        ...new Map(
+          [...data.names, ...importedNames].map((name) => [name.toLowerCase(), name]),
+        ).values(),
+      ];
+      save();
+      $('#dialog-status').textContent =
+        `Imported ${importedSessions.length} sessions from the spreadsheet.`;
+      updateJsonPreview();
+      renderHome();
+    } catch (error) {
+      $('#dialog-status').textContent = error.message || 'Could not read that CSV file.';
+    }
+    event.target.value = '';
+  };
   $('#import-file').onchange = async (e) => {
     try {
       let parsed = JSON.parse(await e.target.files[0].text());
