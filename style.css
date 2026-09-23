@@ -733,8 +733,8 @@ select:focus {
   border-radius: 14px;
   background: var(--white);
 }
-.barbell-wheel .plates-wheel-labels,
-.barbell-wheel .plates-wheel-columns {
+.single-weight-wheel .plates-wheel-labels,
+.single-weight-wheel .plates-wheel-columns {
   grid-template-columns: 1fr;
 }
 .plates-wheel-labels,
@@ -813,6 +813,62 @@ select:focus {
   min-width: 82px;
   color: var(--muted);
   font-size: 12px;
+}
+.barbell-plates {
+  margin-top: 14px;
+}
+.barbell-plates-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.barbell-plate-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.barbell-plate {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 1px;
+  border-left: 1px solid var(--line);
+}
+.barbell-plate:first-child {
+  border-left: 0;
+}
+.barbell-plate-label {
+  display: grid;
+  min-height: 30px;
+  place-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+  white-space: nowrap;
+}
+.barbell-plate-controls {
+  display: grid;
+  grid-template-rows: 34px 24px 34px;
+  justify-items: center;
+  align-items: center;
+}
+.barbell-plate-controls button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+}
+.barbell-plate-controls output {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 .choice-toggle {
   display: inline-flex;

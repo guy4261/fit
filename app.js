@@ -2,6 +2,7 @@
   const KEY = 'form-training-log-v1',
     $ = (q, r = document) => r.querySelector(q),
     app = $('#app');
+  const BARBELL_PLATES = [1.25, 2.5, 5, 10, 15, 20];
   let data = read(),
     active = null,
     reorderMode = false,
@@ -51,11 +52,48 @@
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
     );
   }
+  function barbellPlateCounts(weight) {
+    const counts = Object.fromEntries(BARBELL_PLATES.map((kg) => [String(kg), 0]));
+    if (weight.plates && typeof weight.plates === 'object') {
+      BARBELL_PLATES.forEach((kg) => {
+        counts[String(kg)] = Math.max(
+          0,
+          Math.floor(Number(weight.plates[String(kg)]) || 0),
+        );
+      });
+      return counts;
+    }
+    let remainingUnits = Math.max(0, Math.round((Number(weight.side) || 0) / 1.25));
+    [...BARBELL_PLATES].reverse().forEach((kg) => {
+      const units = kg / 1.25;
+      counts[String(kg)] = Math.floor(remainingUnits / units);
+      remainingUnits %= units;
+    });
+    return counts;
+  }
+  function barbellPerSide(weight) {
+    if (weight.plates && typeof weight.plates === 'object') {
+      return BARBELL_PLATES.reduce(
+        (sum, kg) =>
+          sum + kg * Math.max(0, Math.floor(Number(weight.plates[String(kg)]) || 0)),
+        0,
+      );
+    }
+    return Number(weight.side) || 0;
+  }
+  function readBarbellPlateCounts(panel) {
+    return Object.fromEntries(
+      BARBELL_PLATES.map((kg) => [
+        String(kg),
+        Number($(`[data-plate="${kg}"] [data-plate-count]`, panel).textContent),
+      ]),
+    );
+  }
   function total(w) {
     return w.type === 'barbell'
       ? w.bar === 0
-        ? w.side
-        : w.bar + 2 * w.side
+        ? barbellPerSide(w)
+        : w.bar + 2 * barbellPerSide(w)
       : w.type === 'dumbbell'
         ? w.count * w.each
         : w.type === 'kettlebell'
@@ -457,20 +495,18 @@
         setupNumberWheel('plate-integer', integerValues, updatePlatesTotal);
         setupNumberWheel('plate-fraction', fractionValues, updatePlatesTotal);
       } else if (t === 'barbell') {
-        const sideValues = [
-          1.25, 2.5, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25,
-        ];
         let bar = w.type === 'barbell' ? w.bar : 20,
-          side = w.type === 'barbell' ? w.side : 10;
-        if (!sideValues.includes(side)) {
-          side = sideValues.reduce((closest, value) =>
-            Math.abs(value - side) < Math.abs(closest - side) ? value : closest,
-          );
-        }
-        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">X</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="plates-wheels barbell-wheel"><div class="plates-wheel-labels"><span>Per side (kg)</span></div><div class="plates-wheel-columns"><div class="plates-wheel-column">${numberWheel('side', 'Weight per side', side, sideValues, (value) => String(value))}</div></div></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar === 0 ? side : bar + side * 2} kg</b></div>`;
+          plates = barbellPlateCounts(w);
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">X</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="barbell-plates"><div class="barbell-plates-head"><span class="weight-row-label" id="barbell-plate-label">${bar === 0 ? 'Plates for one hand' : 'Plates per side'}</span><button class="small-action" id="clear-barbell-plates" type="button">Clear all</button></div><div class="barbell-plate-grid" id="barbell-plate-grid" role="group" aria-label="Plate counts per side">${BARBELL_PLATES.map((kg) => `<div class="barbell-plate" data-plate="${kg}"><span class="barbell-plate-label">${kg} kg</span><div class="barbell-plate-controls"><button type="button" data-plate-step="1" aria-label="Add one ${kg} kilogram plate">＋</button><output data-plate-count>${plates[String(kg)]}</output><button type="button" data-plate-step="-1" aria-label="Remove one ${kg} kilogram plate">−</button></div></div>`).join('')}</div></div><div class="total-box"><span>Total barbell weight</span><b id="total" aria-live="polite">${bar === 0 ? barbellPerSide({ plates }) : bar + 2 * barbellPerSide({ plates })} kg</b></div>`;
         let up = () => {
           const selectedBar = +$('.choice-toggle [aria-pressed="true"]').dataset.bar;
-          const perSide = +$('#side').dataset.value;
+          const perSide = barbellPerSide({ plates: readBarbellPlateCounts(p) });
+          $('#barbell-plate-label', p).textContent =
+            selectedBar === 0 ? 'Plates for one hand' : 'Plates per side';
+          $('#barbell-plate-grid', p).setAttribute(
+            'aria-label',
+            selectedBar === 0 ? 'Plate counts for one hand' : 'Plate counts per side',
+          );
           $('#total').textContent =
             (selectedBar === 0 ? perSide : selectedBar + 2 * perSide) + ' kg';
         };
@@ -482,15 +518,37 @@
             up();
           };
         });
-        setupNumberWheel('side', sideValues, up);
+        p.querySelectorAll('[data-plate-step]').forEach((button) => {
+          button.onclick = () => {
+            const count = button.parentElement.querySelector('[data-plate-count]');
+            count.textContent = String(
+              Math.max(0, Number(count.textContent) + Number(button.dataset.plateStep)),
+            );
+            up();
+          };
+        });
+        $('#clear-barbell-plates', p).onclick = () => {
+          p.querySelectorAll('[data-plate-count]').forEach((count) => {
+            count.textContent = '0';
+          });
+          up();
+        };
       } else if (t === 'dumbbell') {
+        const eachValues = [
+          1.25, 2.5, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25,
+        ];
         let count = w.type === 'dumbbell' ? w.count : 2,
           each = w.type === 'dumbbell' ? w.each : 10;
-        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Dumbbells</span><div class="choice-toggle" role="group" aria-label="Number of dumbbells"><button type="button" data-count="1" aria-pressed="${count === 1}">1</button><button type="button" data-count="2" aria-pressed="${count === 2}">2</button></div></div><div class="weight-row"><label for="each">Each</label><input id="each" type="range" min="4" max="25" step="2.5" value="${each}"><output id="each-val" class="range-value">${each} kg</output></div><div class="total-box"><span>Total weight</span><b id="total">${count * each} kg</b></div>`;
+        if (!eachValues.includes(each)) {
+          each = eachValues.reduce((closest, value) =>
+            Math.abs(value - each) < Math.abs(closest - each) ? value : closest,
+          );
+        }
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Dumbbells</span><div class="choice-toggle" role="group" aria-label="Number of dumbbells"><button type="button" data-count="1" aria-pressed="${count === 1}">1</button><button type="button" data-count="2" aria-pressed="${count === 2}">2</button></div></div><div class="plates-wheels single-weight-wheel"><div class="plates-wheel-labels"><span>Each (kg)</span></div><div class="plates-wheel-columns"><div class="plates-wheel-column">${numberWheel('each', 'Weight of each dumbbell', each, eachValues, (value) => String(value))}</div></div></div><div class="total-box"><span>Total weight</span><b id="total">${count * each} kg</b></div>`;
         let up = () => {
-          $('#each-val').value = $('#each').value + ' kg';
           $('#total').textContent =
-            +$('.choice-toggle [aria-pressed="true"]').dataset.count * +$('#each').value +
+            +$('.choice-toggle [aria-pressed="true"]').dataset.count *
+              +$('#each').dataset.value +
             ' kg';
         };
         p.querySelectorAll('[data-count]').forEach((button) => {
@@ -501,7 +559,7 @@
             up();
           };
         });
-        $('#each').oninput = up;
+        setupNumberWheel('each', eachValues, up);
       } else {
         let kg = w.type === 'kettlebell' ? w.kg : 16;
         p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}">${n}</button>`).join('')}</div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${kg} kg</b></div>`;
@@ -526,13 +584,16 @@
             ? {
                 type: t,
                 bar: +$('.choice-toggle [aria-pressed="true"]').dataset.bar,
-                side: +$('#side').dataset.value,
+                side: barbellPerSide({
+                  plates: readBarbellPlateCounts($('#weight-panel', form)),
+                }),
+                plates: readBarbellPlateCounts($('#weight-panel', form)),
               }
             : t === 'dumbbell'
               ? {
                   type: t,
                   count: +$('.choice-toggle [aria-pressed="true"]').dataset.count,
-                  each: +$('#each').value,
+                  each: +$('#each').dataset.value,
                 }
               : t === 'kettlebell'
                 ? {
@@ -762,6 +823,7 @@
     URL.revokeObjectURL(url);
     $('#dialog-status').textContent = 'Backup downloaded.';
   };
+  const barbellPlateColumns = BARBELL_PLATES.map((kg) => `${kg} kg plates per side`);
   const csvColumns = [
     'Session ID',
     'Session date',
@@ -775,6 +837,7 @@
     'Weight type',
     'Bar kg',
     'Per side kg',
+    ...barbellPlateColumns,
     'Dumbbells',
     'Each kg',
     'Kettlebell kg',
@@ -805,6 +868,9 @@
           weight.type || '',
           weight.type === 'barbell' ? weight.bar : '',
           weight.type === 'barbell' ? weight.side : '',
+          ...BARBELL_PLATES.map((kg) =>
+            weight.type === 'barbell' && weight.plates ? weight.plates[String(kg)] : '',
+          ),
           weight.type === 'dumbbell' ? weight.count : '',
           weight.type === 'dumbbell' ? weight.each : '',
           weight.type === 'kettlebell' ? weight.kg : '',
@@ -887,6 +953,12 @@
       'plates whole kg',
       'plates fraction kg',
     ];
+    const plateColumnsPresent = barbellPlateColumns.filter((column) =>
+      headers.has(column.toLowerCase()),
+    ).length;
+    if (plateColumnsPresent > 0 && plateColumnsPresent < barbellPlateColumns.length)
+      throw new Error('This CSV has incomplete barbell plate columns.');
+    const hasBarbellPlateColumns = plateColumnsPresent === barbellPlateColumns.length;
     if (required.some((header) => !headers.has(header)))
       throw new Error('This CSV does not look like a fit24 spreadsheet.');
     const readCell = (cells, label) => {
@@ -969,6 +1041,17 @@
               type: weightType,
               bar: readNumber(cells, 'bar kg'),
               side: readNumber(cells, 'per side kg'),
+              ...(hasBarbellPlateColumns &&
+              barbellPlateColumns.some((column) => readCell(cells, column.toLowerCase()))
+                ? {
+                    plates: Object.fromEntries(
+                      BARBELL_PLATES.map((kg, index) => [
+                        String(kg),
+                        readNumber(cells, barbellPlateColumns[index].toLowerCase()),
+                      ]),
+                    ),
+                  }
+                : {}),
             }
           : weightType === 'dumbbell'
             ? {

@@ -81,11 +81,11 @@ flowchart TB
 }
 ```
 
-Weight variants are `{ type: "body" }`, `{ type: "barbell", bar: 20, side: 10 }`, `{ type: "dumbbell", count: 2, each: 10 }`, `{ type: "kettlebell", kg: 16 }`, or `{ type: "plates", integer: 20, fraction: 0.5 }`. Exercise times are not stored; `startTime` and `endTime` belong to the entire session. Totals are derived in the UI and are not persisted separately.
+Weight variants are `{ type: "body" }`, `{ type: "barbell", bar: 20, side: 10, plates: { "1.25": 0, "2.5": 1, "5": 1, "10": 0, "15": 0, "20": 0 } }`, `{ type: "dumbbell", count: 2, each: 10 }`, `{ type: "kettlebell", kg: 16 }`, or `{ type: "plates", integer: 20, fraction: 0.5 }`. Barbell plate counts describe the number of each plate per side; `side` remains as a derived compatibility value for older exports. Exercise times are not stored; `startTime` and `endTime` belong to the entire session. Totals are derived in the UI and are not persisted separately.
 
 ## Maintenance notes
 
-- Changing the stored shape or key requires a migration or backwards-compatible read path in `read()`.
+- Changing the stored shape or key requires a migration or backwards-compatible read path in `read()`. Legacy barbell weights with only a per-side total are converted to the nearest representable 1.25 kg plate combination when edited.
 - `localStorage` is synchronous and has limited capacity. For a much larger log, replace it with IndexedDB and keep the UI independent from storage details.
 - Import currently replaces the session list. Preserve that behavior clearly or add a separate merge option if import semantics change.
 - `mailto:` is intentionally a convenience summary, not a reliable backup channel; URL size limits vary by browser and email app.
