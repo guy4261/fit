@@ -94,7 +94,7 @@
   }
   function renderHome() {
     const ss = [...data.sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    app.innerHTML = `<div class="eyebrow">YOUR TRAINING, YOUR WAY</div><section class="hero"><div><h1>Show up.<br>Get stronger.</h1><p>A quiet place to keep track of your work.</p></div><button class="primary" id="start">＋ &nbsp;Start a session</button></section><div class="section-title"><h2>Training history</h2><span>${ss.length} ${ss.length === 1 ? 'session' : 'sessions'}</span></div>${
+    app.innerHTML = `<section class="hero"><button class="primary" id="start">＋ &nbsp;Start a session</button></section><div class="section-title"><h2>Training history</h2><span>${ss.length} ${ss.length === 1 ? 'session' : 'sessions'}</span></div>${
       ss.length
         ? `<div class="session-list">${ss
             .map((s) => {
