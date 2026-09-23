@@ -330,7 +330,7 @@
       value = values.includes(Number(value)) ? Number(value) : values[0];
       return `<div class="number-wheel" id="${id}" role="spinbutton" tabindex="0" aria-label="${label}" aria-valuemin="${values[0]}" aria-valuemax="${values.at(-1)}" aria-valuenow="${value}" aria-valuetext="${value}" data-value="${value}"><div class="number-wheel-viewport"><div class="number-wheel-list">${values.map((number, index) => `<div class="number-wheel-item${number === value ? ' is-selected' : ''}" data-index="${index}" data-value="${number}" aria-hidden="true">${format(number)}</div>`).join('')}</div></div></div>`;
     };
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets)}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps)}</div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields exercise-count-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets)}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps)}</div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
       ['body', 'Body'],
       ['plates', 'Plates'],
       ['barbell', 'Barbell'],
@@ -460,13 +460,20 @@
         setupNumberWheel('plate-integer', integerValues, updatePlatesTotal);
         setupNumberWheel('plate-fraction', fractionValues, updatePlatesTotal);
       } else if (t === 'barbell') {
+        const sideValues = [
+          1.25, 2.5, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25,
+        ];
         let bar = w.type === 'barbell' ? w.bar : 20,
           side = w.type === 'barbell' ? w.side : 10;
-        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">X</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="weight-row"><label for="side">Per side</label><input id="side" type="range" min="0" max="100" step="2.5" value="${side}"><output id="side-val" class="range-value">${side} kg</output></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar === 0 ? side : bar + side * 2} kg</b></div>`;
+        if (!sideValues.includes(side)) {
+          side = sideValues.reduce((closest, value) =>
+            Math.abs(value - side) < Math.abs(closest - side) ? value : closest,
+          );
+        }
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">X</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="plates-wheels barbell-wheel"><div class="plates-wheel-labels"><span>Per side (kg)</span></div><div class="plates-wheel-columns"><div class="plates-wheel-column">${numberWheel('side', 'Weight per side', side, sideValues, (value) => String(value))}</div></div></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar === 0 ? side : bar + side * 2} kg</b></div>`;
         let up = () => {
-          $('#side-val').value = $('#side').value + ' kg';
           const selectedBar = +$('.choice-toggle [aria-pressed="true"]').dataset.bar;
-          const perSide = +$('#side').value;
+          const perSide = +$('#side').dataset.value;
           $('#total').textContent =
             (selectedBar === 0 ? perSide : selectedBar + 2 * perSide) + ' kg';
         };
@@ -478,7 +485,7 @@
             up();
           };
         });
-        $('#side').oninput = up;
+        setupNumberWheel('side', sideValues, up);
       } else if (t === 'dumbbell') {
         let count = w.type === 'dumbbell' ? w.count : 2,
           each = w.type === 'dumbbell' ? w.each : 10;
@@ -522,7 +529,7 @@
             ? {
                 type: t,
                 bar: +$('.choice-toggle [aria-pressed="true"]').dataset.bar,
-                side: +$('#side').value,
+                side: +$('#side').dataset.value,
               }
             : t === 'dumbbell'
               ? {

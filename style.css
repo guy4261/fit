@@ -688,6 +688,12 @@ select:focus {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
+/* Temporarily hidden while the app is tried without these controls. */
+.exercise-count-fields,
+.session-time-fields .field:last-child {
+  display: none;
+}
 .weight-types {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -726,6 +732,10 @@ select:focus {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--white);
+}
+.barbell-wheel .plates-wheel-labels,
+.barbell-wheel .plates-wheel-columns {
+  grid-template-columns: 1fr;
 }
 .plates-wheel-labels,
 .plates-wheel-columns {
