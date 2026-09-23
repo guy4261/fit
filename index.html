@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f6f4ef" />
+    <meta
+      name="description"
+      content="A simple, private workout log that stays on your device."
+    />
+    <title>Form — Training log</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#home" aria-label="Form home"
+        ><span class="brand-mark">f</span> form</a
+      ><button
+        class="icon-button"
+        id="menu-button"
+        aria-label="Data and settings"
+        title="Data and settings"
+      >
+        <svg class="share-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" />
+        </svg>
+      </button>
+    </header>
+    <main id="app" class="app-shell" aria-live="polite"></main>
+    <dialog id="data-dialog" class="data-dialog">
+      <div class="dialog-head">
+        <h2>Your data</h2>
+        <button class="icon-button" id="close-dialog" aria-label="Close">×</button>
+      </div>
+      <p class="muted">Your training log stays on this device.</p>
+      <button class="menu-action" id="export-json">
+        ⇩
+        <span
+          ><b>Export backup</b><small>Save all sessions as a JSON file</small></span
+        ></button
+      ><label class="menu-action file-action"
+        >⇧ <span><b>Import backup</b><small>Load sessions from a JSON file</small></span
+        ><input id="import-file" type="file" accept="application/json,.json" /></label
+      ><button class="menu-action" id="email-data">
+        ✉
+        <span
+          ><b>Share by email</b><small>Prepare a summary in your email app</small></span
+        >
+      </button>
+      <p class="dialog-note">
+        Email apps have message size limits. Use Export backup for a complete copy.
+      </p>
+      <p id="dialog-status" class="status" role="status"></p>
+      <section class="json-preview" aria-labelledby="json-preview-label">
+        <div class="json-preview-head">
+          <label id="json-preview-label" for="json-preview">JSON backup</label>
+          <span id="json-character-count" class="muted"></span>
+        </div>
+        <textarea
+          id="json-preview"
+          readonly
+          spellcheck="false"
+          aria-label="JSON backup contents"
+        ></textarea>
+        <button class="menu-action copy-action" id="copy-json" type="button">
+          ⧉
+          <span
+            ><b>Copy to clipboard</b><small>Copy the formatted JSON backup</small></span
+          >
+        </button>
+        <button class="menu-action copy-action" id="show-qr" type="button">
+          ▦
+          <span
+            ><b>Show QR code</b
+            ><small id="qr-button-note">For small backups only</small></span
+          >
+        </button>
+        <div id="qr-result" class="qr-result" hidden>
+          <p id="qr-status" class="muted" role="status"></p>
+          <div id="qr-code" aria-label="QR code containing the JSON backup"></div>
+        </div>
+      </section>
+    </dialog>
+    <datalist id="exercise-suggestions"></datalist>
+  </body>
+</html>

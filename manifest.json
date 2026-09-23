@@ -1,0 +1,11 @@
+{
+  "name": "Form Training Log",
+  "short_name": "Form",
+  "description": "A simple, private workout log that stays on your device.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#f6f4ef",
+  "icons": []
+}

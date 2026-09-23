@@ -1,0 +1,19 @@
+{
+  "name": "fit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --plugin=@prettier/plugin-xml --write \"*.js\" \"*.html\" \"*.css\" \"*.svg\" \"*.json\"",
+    "format:check": "prettier --plugin=@prettier/plugin-xml --check \"*.js\" \"*.html\" \"*.css\" \"*.svg\" \"*.json\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@prettier/plugin-xml": "^3.4.2",
+    "prettier": "^3.9.9"
+  }
+}
