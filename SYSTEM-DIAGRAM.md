@@ -65,6 +65,8 @@ flowchart TB
       id: "unique session id",
       date: "ISO-8601 timestamp",
       title: "Session title",
+      startTime: "HH:mm",
+      endTime: "", // empty until the session ends
       exercises: [
         {
           name: "Goblet squat",
@@ -79,7 +81,7 @@ flowchart TB
 }
 ```
 
-Weight variants are `{ type: "body" }`, `{ type: "barbell", bar: 20, side: 10 }`, `{ type: "dumbbell", count: 2, each: 10 }`, or `{ type: "kettlebell", kg: 16 }`. Totals are derived in the UI and are not persisted separately.
+Weight variants are `{ type: "body" }`, `{ type: "barbell", bar: 20, side: 10 }`, `{ type: "dumbbell", count: 2, each: 10 }`, `{ type: "kettlebell", kg: 16 }`, or `{ type: "plates", integer: 20, fraction: 0.5 }`. Exercise times are not stored; `startTime` and `endTime` belong to the entire session. Totals are derived in the UI and are not persisted separately.
 
 ## Maintenance notes
 

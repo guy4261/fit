@@ -4,12 +4,38 @@
     app = $('#app');
   let data = read(),
     active = null,
-    reorderMode = false;
+    reorderMode = false,
+    validateActiveSessionTimes = () => true;
+  function migrateSession(session) {
+    const exercises = Array.isArray(session.exercises) ? session.exercises : [];
+    const migratedStarts = exercises
+      .map((exercise) => exercise.startTime)
+      .filter(Boolean)
+      .sort();
+    const migratedEnds = exercises
+      .map((exercise) => exercise.endTime)
+      .filter(Boolean)
+      .sort();
+    const startTime =
+      session.startTime || migratedStarts[0] || timeFromDate(session.date);
+    let endTime = session.endTime || migratedEnds.at(-1) || '';
+    if (startTime && endTime && endTime < startTime) endTime = '';
+    return {
+      ...session,
+      startTime,
+      endTime,
+      exercises: exercises.map((exercise) => {
+        if (!exercise || typeof exercise !== 'object') return exercise;
+        const { startTime: _startTime, endTime: _endTime, ...savedExercise } = exercise;
+        return savedExercise;
+      }),
+    };
+  }
   function read() {
     try {
       let d = JSON.parse(localStorage.getItem(KEY) || '{}');
       return {
-        sessions: Array.isArray(d.sessions) ? d.sessions : [],
+        sessions: Array.isArray(d.sessions) ? d.sessions.map(migrateSession) : [],
         names: Array.isArray(d.names) ? d.names : [],
       };
     } catch {
@@ -55,13 +81,41 @@
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   }
+  function timeFromDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  }
   function exerciseDetails(exercise) {
-    let details = `${exercise.sets} sets × ${exercise.reps} reps`;
-    if (exercise.startTime && exercise.endTime)
-      details += ` · ${exercise.startTime}–${exercise.endTime}`;
-    else if (exercise.startTime) details += ` · Started ${exercise.startTime}`;
-    else if (exercise.endTime) details += ` · Ended ${exercise.endTime}`;
-    return details;
+    return `${exercise.sets} sets × ${exercise.reps} reps`;
+  }
+  function bindSessionTimeInputs(session) {
+    const startInput = $('#session-start-time');
+    const endInput = $('#session-end-time');
+    if (!startInput || !endInput) return () => true;
+    const refresh = () => {
+      endInput.min = startInput.value;
+      endInput.setCustomValidity(
+        endInput.value && (!startInput.value || endInput.value < startInput.value)
+          ? 'End time must be the same as or later than start time.'
+          : '',
+      );
+    };
+    const synchronize = () => {
+      refresh();
+      session.startTime = startInput.value;
+      session.endTime = endInput.value;
+      if (session !== active && endInput.checkValidity()) save();
+    };
+    startInput.addEventListener('input', synchronize);
+    startInput.addEventListener('change', synchronize);
+    endInput.addEventListener('input', synchronize);
+    endInput.addEventListener('change', synchronize);
+    refresh();
+    return () => {
+      synchronize();
+      return endInput.reportValidity();
+    };
   }
   function exerciseHistory(name) {
     const matches = data.sessions.flatMap((session) =>
@@ -126,6 +180,8 @@
       id: crypto.randomUUID?.() || String(Date.now()),
       date,
       title: sessionTitle(date),
+      startTime: currentTimeValue(),
+      endTime: '',
       exercises: [],
     };
     reorderMode = false;
@@ -133,7 +189,8 @@
   }
   function renderActive() {
     const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>${esc(active.title)}</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="reorder-toolbar"><div class="reorder-controls"><button class="secondary" id="reorder" type="button" ${canReorder ? '' : 'disabled'}>${reorderMode ? 'Save' : 'Reorder'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="section-title"><h2>Exercises</h2><span>${active.exercises.length} added</span></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${esc(exerciseDetails(e))}</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div>${reorderMode ? '' : `<div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div>`}</article>`).join('')}</div>${reorderMode ? '' : `<div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>`}${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>${esc(active.title)}</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="reorder-toolbar"><div class="reorder-controls"><button class="secondary" id="reorder" type="button" ${canReorder ? '' : 'disabled'}>${reorderMode ? 'Save' : 'Reorder'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="section-title"><h2>Exercises</h2><span>${active.exercises.length} added</span></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${esc(exerciseDetails(e))}</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div>${reorderMode ? '' : `<div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div>`}</article>`).join('')}</div>${reorderMode ? '' : `<div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>`}${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    validateActiveSessionTimes = bindSessionTimeInputs(active);
     $('#back').onclick = () => {
       if (
         !active.exercises.length ||
@@ -258,8 +315,6 @@
             name: '',
             sets: 1,
             reps: 1,
-            startTime: currentTimeValue(),
-            endTime: '',
             weight: { type: 'body' },
           }
         : structuredClone(session.exercises[index]);
@@ -275,7 +330,7 @@
       value = values.includes(Number(value)) ? Number(value) : values[0];
       return `<div class="number-wheel" id="${id}" role="spinbutton" tabindex="0" aria-label="${label}" aria-valuemin="${values[0]}" aria-valuemax="${values.at(-1)}" aria-valuenow="${value}" aria-valuetext="${value}" data-value="${value}"><div class="number-wheel-viewport"><div class="number-wheel-list">${values.map((number, index) => `<div class="number-wheel-item${number === value ? ' is-selected' : ''}" data-index="${index}" data-value="${number}" aria-hidden="true">${format(number)}</div>`).join('')}</div></div></div>`;
     };
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets)}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps)}</div></div><div class="split-fields time-fields"><div class="field"><label for="start-time">Start time</label><input id="start-time" class="text-input" type="time" value="${esc(ex.startTime || '')}"></div><div class="field"><label for="end-time">End time</label><input id="end-time" class="text-input" type="time" value="${esc(ex.endTime || '')}"></div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets)}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps)}</div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
       ['body', 'Body'],
       ['plates', 'Plates'],
       ['barbell', 'Barbell'],
@@ -290,19 +345,6 @@
         '',
       )}</div><div id="weight-panel" class="weight-panel"></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary">${index === null ? 'Add exercise' : 'Save changes'}</button></div></form>`;
     const form = $('#form');
-    const startTimeInput = $('#start-time', form);
-    const endTimeInput = $('#end-time', form);
-    const updateTimeValidation = () => {
-      endTimeInput.min = startTimeInput.value;
-      endTimeInput.setCustomValidity(
-        endTimeInput.value &&
-          (!startTimeInput.value || endTimeInput.value < startTimeInput.value)
-          ? 'Enter an end time that is the same as or later than the start time.'
-          : '',
-      );
-    };
-    startTimeInput.addEventListener('input', updateTimeValidation);
-    endTimeInput.addEventListener('input', updateTimeValidation);
     $('#form-back').onclick = returnToSession;
     $('#cancel').onclick = returnToSession;
     $('#toggle-name-lock').onclick = (event) => {
@@ -473,7 +515,6 @@
     panel();
     form.onsubmit = (e) => {
       e.preventDefault();
-      updateTimeValidation();
       if (!form.reportValidity()) return;
       let t = $('input[name=type]:checked', form).value,
         weight =
@@ -510,8 +551,6 @@
         name,
         sets: Number($('#sets', form).dataset.value),
         reps: Number($('#reps', form).dataset.value),
-        startTime: startTimeInput.value,
-        endTime: endTimeInput.value,
         weight,
       };
       if (index === null) session.exercises.push(result);
@@ -523,6 +562,7 @@
     };
   }
   function finish() {
+    if (!validateActiveSessionTimes()) return;
     if (!active.exercises.length && !confirm('Finish this session without exercises?'))
       return;
     data.sessions.push(active);
@@ -622,8 +662,6 @@
                 name,
                 sets: 1,
                 reps: 1,
-                startTime: currentTimeValue(),
-                endTime: '',
                 weight: { type: 'body' },
               });
             }
@@ -660,7 +698,8 @@
       location.hash = '';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div><h1>${esc(s.title)}</h1><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises · ${s.exercises.reduce((n, e) => n + e.sets, 0)} sets</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${esc(exerciseDetails(e))}</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div><h1>${esc(s.title)}</h1><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises · ${s.exercises.reduce((n, e) => n + e.sets, 0)} sets</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${esc(exerciseDetails(e))}</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
+    bindSessionTimeInputs(s);
     $('#saved-back').onclick = () => {
       location.hash = '#home';
       renderHome();
@@ -723,12 +762,12 @@
     'Session ID',
     'Session date',
     'Session title',
+    'Session start time',
+    'Session end time',
     'Exercise order',
     'Exercise name',
     'Sets',
     'Repetitions',
-    'Start time',
-    'End time',
     'Weight type',
     'Bar kg',
     'Per side kg',
@@ -753,12 +792,12 @@
           session.id,
           session.date,
           session.title,
+          session.startTime || '',
+          session.endTime || '',
           exercise ? order : '',
           exercise?.name || '',
           exercise?.sets ?? '',
           exercise?.reps ?? '',
-          exercise?.startTime || '',
-          exercise?.endTime || '',
           weight.type || '',
           weight.type === 'barbell' ? weight.bar : '',
           weight.type === 'barbell' ? weight.side : '',
@@ -884,25 +923,39 @@
         );
       const providedId = readCell(cells, 'session id');
       const key = providedId || `${date}\u0000${title}`;
+      const startColumn = headers.has('session start time')
+        ? 'session start time'
+        : 'start time';
+      const endColumn = headers.has('session end time') ? 'session end time' : 'end time';
+      const startTime = readTime(cells, startColumn);
+      const endTime = readTime(cells, endColumn);
+      if (endTime && (!startTime || endTime < startTime))
+        throw new Error(
+          `End time must be at or after start time on CSV row ${rowIndex + 2}.`,
+        );
       if (!sessions.has(key)) {
         sessions.set(key, {
           session: {
             id: providedId || crypto.randomUUID?.() || String(Date.now() + rowIndex),
             date: parsedDate.toISOString(),
             title,
+            startTime,
+            endTime,
             exercises: [],
           },
           exercises: [],
         });
       }
+      const importedSession = sessions.get(key).session;
+      if (
+        startTime &&
+        (!importedSession.startTime || startTime < importedSession.startTime)
+      )
+        importedSession.startTime = startTime;
+      if (endTime && (!importedSession.endTime || endTime > importedSession.endTime))
+        importedSession.endTime = endTime;
       const exerciseName = readCell(cells, 'exercise name');
       if (!exerciseName) return;
-      const startTime = readTime(cells, 'start time');
-      const endTime = readTime(cells, 'end time');
-      if (endTime && (!startTime || endTime < startTime))
-        throw new Error(
-          `End time must be at or after start time on CSV row ${rowIndex + 2}.`,
-        );
       const weightType = readCell(cells, 'weight type').toLowerCase();
       if (!['body', 'barbell', 'dumbbell', 'kettlebell', 'plates'].includes(weightType))
         throw new Error(`Unknown weight type on CSV row ${rowIndex + 2}.`);
@@ -935,8 +988,6 @@
           name: exerciseName,
           sets: readNumber(cells, 'sets', 1),
           reps: readNumber(cells, 'repetitions', 1),
-          startTime,
-          endTime,
           weight,
         },
       });
@@ -980,7 +1031,7 @@
         parsed.sessions.some((s) => !Array.isArray(s.exercises))
       )
         throw Error('This file does not look like a fit24 backup.');
-      data.sessions = parsed.sessions;
+      data.sessions = parsed.sessions.map(migrateSession);
       data.names = [
         ...new Set([
           ...(data.names || []),
