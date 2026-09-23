@@ -1,4 +1,4 @@
-const CACHE = 'form-training-v2';
+const CACHE = 'form-training-v3';
 const FILES = ['./', './index.html', './style.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', (event) => {

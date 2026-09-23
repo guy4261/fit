@@ -38,6 +38,12 @@
       ? 'Body weight'
       : `${w.type === 'dumbbell' && w.count === 2 ? '2 × ' : ''}${total(w)} kg`;
   }
+  function sessionTitle(date) {
+    return new Date(date).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  }
   function renderHome() {
     const ss = [...data.sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
     app.innerHTML = `<div class="eyebrow">YOUR TRAINING, YOUR WAY</div><section class="hero"><div><h1>Show up.<br>Get stronger.</h1><p>A quiet place to keep track of your work.</p></div><button class="primary" id="start">＋ &nbsp;Start a session</button></section><div class="section-title"><h2>Training history</h2><span>${ss.length} ${ss.length === 1 ? 'session' : 'sessions'}</span></div>${
@@ -51,26 +57,37 @@
         : `<div class="empty"><div class="empty-icon">🏋️</div><b>Your first session starts here</b>Your training history will show up after you finish a session.</div>`
     }`;
     $('#start').onclick = () => {
-      active = {
-        id: crypto.randomUUID?.() || String(Date.now()),
-        date: new Date().toISOString(),
-        exercises: [],
-      };
-      renderActive();
+      startSession();
     };
   }
+  function startSession() {
+    const date = new Date().toISOString();
+    active = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      date,
+      title: sessionTitle(date),
+      exercises: [],
+    };
+    renderActive();
+  }
   function renderActive() {
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>Training session</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="section-title"><h2>Exercises</h2><span>${active.exercises.length} added</span></div><div class="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><button class="add-exercise" id="add"><span>＋</span> Add exercise</button>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>${esc(active.title)}</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="section-title"><h2>Exercises</h2><span class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ${active.exercises.length < 2 ? 'disabled' : ''}>↻</button></span></div><div class="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><button class="add-exercise" id="add"><span>＋</span> Add exercise</button>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     $('#back').onclick = () => {
       if (
         !active.exercises.length ||
         confirm('Leave this session? It has not been saved.')
       ) {
         active = null;
+        location.hash = '#home';
         renderHome();
       }
     };
     $('#add').onclick = () => exerciseForm();
+    $('#rotate-exercises').onclick = () => {
+      if (active.exercises.length < 2) return;
+      active.exercises.unshift(active.exercises.pop());
+      renderActive();
+    };
     $('#finish').onclick = finish;
     $('#finish-bottom')?.addEventListener('click', finish);
     app
@@ -214,16 +231,10 @@
   function finish() {
     if (!active.exercises.length && !confirm('Finish this session without exercises?'))
       return;
-    let first = active.exercises[0]?.name;
-    active.title = first
-      ? first +
-        (active.exercises.length > 1
-          ? ' + ' + (active.exercises.length - 1) + ' more'
-          : '')
-      : 'Training session';
     data.sessions.push(active);
     save();
     active = null;
+    location.hash = '#home';
     renderHome();
   }
   function renderSaved(id) {
@@ -234,21 +245,23 @@
     }
     app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div><h1>${esc(s.title)}</h1><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises · ${s.exercises.reduce((n, e) => n + e.sets, 0)} sets</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><div class="exercise-list">${s.exercises.map((e) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3><p class="details">${e.sets} sets × ${e.reps} reps</p></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
     $('#saved-back').onclick = () => {
-      location.hash = '';
+      location.hash = '#home';
       renderHome();
     };
     $('#delete').onclick = () => {
       if (confirm('Delete this training session?')) {
         data.sessions = data.sessions.filter((x) => x.id !== id);
         save();
-        location.hash = '';
+        location.hash = '#home';
         renderHome();
       }
     };
   }
   function route() {
     let m = location.hash.match(/^#session\/([^/]+)$/);
-    m ? renderSaved(decodeURIComponent(m[1])) : renderHome();
+    if (m) renderSaved(decodeURIComponent(m[1]));
+    else if (location.hash === '#home' || location.hash === '#history') renderHome();
+    else startSession();
   }
   const dialog = $('#data-dialog');
   function backupJson() {
