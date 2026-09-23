@@ -128,27 +128,53 @@
       if (t === 'barbell') {
         let bar = w.type === 'barbell' ? w.bar : 20,
           side = w.type === 'barbell' ? w.side : 10;
-        p.innerHTML = `<div class="weight-row"><label>Bar weight</label><select id="bar"><option value="15" ${bar === 15 ? 'selected' : ''}>15 kg</option><option value="20" ${bar === 20 ? 'selected' : ''}>20 kg</option></select></div><div class="weight-row"><label>Per side</label><input id="side" type="range" min="0" max="100" step="2.5" value="${side}"><output id="side-val" class="range-value">${side} kg</output></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar + side * 2} kg</b></div>`;
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="weight-row"><label for="side">Per side</label><input id="side" type="range" min="0" max="100" step="2.5" value="${side}"><output id="side-val" class="range-value">${side} kg</output></div><div class="total-box"><span>Total barbell weight</span><b id="total">${bar + side * 2} kg</b></div>`;
         let up = () => {
           $('#side-val').value = $('#side').value + ' kg';
-          $('#total').textContent = +$('#bar').value + 2 * +$('#side').value + ' kg';
+          $('#total').textContent =
+            +$('.choice-toggle [aria-pressed="true"]').dataset.bar +
+            2 * +$('#side').value +
+            ' kg';
         };
-        $('#bar').onchange = up;
+        p.querySelectorAll('[data-bar]').forEach((button) => {
+          button.onclick = () => {
+            p.querySelectorAll('[data-bar]').forEach((option) =>
+              option.setAttribute('aria-pressed', option === button),
+            );
+            up();
+          };
+        });
         $('#side').oninput = up;
       } else if (t === 'dumbbell') {
         let count = w.type === 'dumbbell' ? w.count : 2,
           each = w.type === 'dumbbell' ? w.each : 10;
-        p.innerHTML = `<div class="weight-row"><label>Dumbbells</label><select id="count"><option value="1" ${count === 1 ? 'selected' : ''}>1 dumbbell</option><option value="2" ${count === 2 ? 'selected' : ''}>2 dumbbells</option></select></div><div class="weight-row"><label>Each</label><input id="each" type="range" min="4" max="25" step="2.5" value="${each}"><output id="each-val" class="range-value">${each} kg</output></div><div class="total-box"><span>Total weight</span><b id="total">${count * each} kg</b></div>`;
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Dumbbells</span><div class="choice-toggle" role="group" aria-label="Number of dumbbells"><button type="button" data-count="1" aria-pressed="${count === 1}">1</button><button type="button" data-count="2" aria-pressed="${count === 2}">2</button></div></div><div class="weight-row"><label for="each">Each</label><input id="each" type="range" min="4" max="25" step="2.5" value="${each}"><output id="each-val" class="range-value">${each} kg</output></div><div class="total-box"><span>Total weight</span><b id="total">${count * each} kg</b></div>`;
         let up = () => {
           $('#each-val').value = $('#each').value + ' kg';
-          $('#total').textContent = +$('#count').value * +$('#each').value + ' kg';
+          $('#total').textContent =
+            +$('.choice-toggle [aria-pressed="true"]').dataset.count * +$('#each').value +
+            ' kg';
         };
-        $('#count').onchange = up;
+        p.querySelectorAll('[data-count]').forEach((button) => {
+          button.onclick = () => {
+            p.querySelectorAll('[data-count]').forEach((option) =>
+              option.setAttribute('aria-pressed', option === button),
+            );
+            up();
+          };
+        });
         $('#each').oninput = up;
       } else {
         let kg = w.type === 'kettlebell' ? w.kg : 16;
-        p.innerHTML = `<div class="weight-row"><label>Kettlebell</label><select id="kg">${[12, 16, 20, 24, 28].map((n) => `<option value="${n}" ${n === kg ? 'selected' : ''}>${n} kg</option>`).join('')}</select></div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${kg} kg</b></div>`;
-        $('#kg').onchange = () => ($('#total').textContent = $('#kg').value + ' kg');
+        p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}">${n}</button>`).join('')}</div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${kg} kg</b></div>`;
+        p.querySelectorAll('[data-kg]').forEach((button) => {
+          button.onclick = () => {
+            p.querySelectorAll('[data-kg]').forEach((option) =>
+              option.setAttribute('aria-pressed', option === button),
+            );
+            $('#total').textContent = button.dataset.kg + ' kg';
+          };
+        });
       }
     }
     form.querySelectorAll('[name=type]').forEach((r) => (r.onchange = panel));
@@ -158,11 +184,22 @@
       let t = $('input[name=type]:checked', form).value,
         weight =
           t === 'barbell'
-            ? { type: t, bar: +$('#bar').value, side: +$('#side').value }
+            ? {
+                type: t,
+                bar: +$('.choice-toggle [aria-pressed="true"]').dataset.bar,
+                side: +$('#side').value,
+              }
             : t === 'dumbbell'
-              ? { type: t, count: +$('#count').value, each: +$('#each').value }
+              ? {
+                  type: t,
+                  count: +$('.choice-toggle [aria-pressed="true"]').dataset.count,
+                  each: +$('#each').value,
+                }
               : t === 'kettlebell'
-                ? { type: t, kg: +$('#kg').value }
+                ? {
+                    type: t,
+                    kg: +$('#weight-panel [data-kg][aria-pressed="true"]').dataset.kg,
+                  }
                 : { type: 'body' },
         name = $('#name').value.trim();
       let result = { name, sets: +$('#sets').value, reps: +$('#reps').value, weight };
