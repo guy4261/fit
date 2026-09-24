@@ -5,6 +5,8 @@ const FILES = [
   './about.html',
   './favicon.png',
   './fit24-qr.svg',
+  './icons/github.svg',
+  './icons/share.svg',
   './style.css',
   './app.js',
   './manifest.json',
