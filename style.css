@@ -211,6 +211,26 @@ button {
   align-items: center;
   gap: 7px;
 }
+.lock-order {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+.lock-order:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.lock-order:focus-visible {
+  outline: 3px solid #648571;
+  outline-offset: 2px;
+}
 .rotate-action {
   display: grid;
   place-items: center;
@@ -349,25 +369,6 @@ button {
 }
 .session-actions {
   margin-left: auto;
-}
-.reorder-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin: -10px 0 20px 52px;
-}
-.reorder-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.reorder-controls > button {
-  min-width: 92px;
-  min-height: 42px;
-}
-.reorder-controls > button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 .rotate-controls {
   display: flex;
