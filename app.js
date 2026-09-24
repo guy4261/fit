@@ -109,11 +109,85 @@
       w.type === 'plates' && Number.isInteger(weight) ? weight.toFixed(1) : weight;
     return `${w.type === 'dumbbell' && w.count === 2 ? '2 × ' : ''}${displayWeight} kg`;
   }
+  function partOfDay(hour){
+    var rv = null;
+    switch(true) {
+
+      case ( 4 <= hour && hour < 12):
+        rv = 'Morning';
+        break;
+
+      case (12 <= hour && hour < 16):
+        rv = 'Noon';
+        break;
+
+      case (16 <= hour && hour < 19):
+        rv = 'Afternoon';
+        break;
+
+      case (19 <= hour && hour < 22):
+        rv = 'Evening';
+        break;
+
+      case (22 <= hour && hour < 24):
+      case (0  <= hour && hour <  4):
+        rv = 'Night';
+        break;
+    }
+    return rv;
+  }
+
   function sessionTitle(date) {
-    return new Date(date).toLocaleString(undefined, {
+    const d = new Date(date);
+    var rv = d.toLocaleString(undefined, {
       dateStyle: 'medium',
-      timeStyle: 'short',
     });
+    rv += ` ${partOfDay(d.getHours())}`;
+    return rv;
+  }
+  function defaultSessionName(date) {
+    return sessionTitle(date);
+  }
+  function bindSessionName(session, isActive) {
+    const label = $('#session-name');
+    const button = $('#edit-session-name');
+    if (!label || !button) return;
+    button.onclick = () => {
+      if (button.dataset.editing === 'true') {
+        const input = $('#session-name-input');
+        const title = input.value.trim();
+        if (!title) {
+          input.setCustomValidity('Enter a session name.');
+          input.reportValidity();
+          return;
+        }
+        session.title = title;
+        if (!isActive) save();
+        label.textContent = title;
+        label.hidden = false;
+        input.remove();
+        button.textContent = '✎';
+        button.setAttribute('aria-label', 'Edit session name');
+        button.title = 'Edit session name';
+        button.dataset.editing = 'false';
+        return;
+      }
+      const input = document.createElement('input');
+      input.id = 'session-name-input';
+      input.className = 'text-input session-name-input';
+      input.type = 'text';
+      input.value = session.title;
+      input.maxLength = 100;
+      input.setAttribute('aria-label', 'Session name');
+      label.hidden = true;
+      label.after(input);
+      button.textContent = '💾';
+      button.setAttribute('aria-label', 'Save session name');
+      button.title = 'Save session name';
+      button.dataset.editing = 'true';
+      input.focus();
+      input.select();
+    };
   }
   function currentTimeValue() {
     const now = new Date();
@@ -214,7 +288,7 @@
     active = {
       id: crypto.randomUUID?.() || String(Date.now()),
       date,
-      title: sessionTitle(date),
+      title: defaultSessionName(date),
       startTime: currentTimeValue(),
       endTime: '',
       exercises: [],
@@ -224,8 +298,9 @@
   }
   function renderActive() {
     const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div><h1>${esc(active.title)}</h1><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="reorder-toolbar"><div class="reorder-controls"><button class="secondary" id="reorder" type="button" ${canReorder ? '' : 'disabled'}>${reorderMode ? 'Save' : 'Reorder'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="section-title"><h2>Exercises</h2><span>${active.exercises.length} added</span></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div>${reorderMode ? '' : `<div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div>`}</article>`).join('')}</div>${reorderMode ? '' : `<div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>`}${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="reorder-toolbar"><div class="reorder-controls"><button class="secondary" id="reorder" type="button" ${canReorder ? '' : 'disabled'}>${reorderMode ? 'Save' : 'Reorder'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="section-title"><h2>Exercises</h2><span>${active.exercises.length} added</span></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3></div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div>${reorderMode ? '' : `<div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action" data-copy="${i}">Duplicate</button><button class="small-action delete" data-remove="${i}">Remove</button></div>`}</article>`).join('')}</div>${reorderMode ? '' : `<div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>`}${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     validateActiveSessionTimes = bindSessionTimeInputs(active);
+    bindSessionName(active, true);
     $('#back').onclick = () => {
       if (
         !active.exercises.length ||
@@ -763,8 +838,9 @@
       location.hash = '';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div><h1>${esc(s.title)}</h1><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(s.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3></div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
     bindSessionTimeInputs(s);
+    bindSessionName(s, false);
     $('#saved-back').onclick = () => {
       location.hash = '#home';
       renderHome();
@@ -1266,3 +1342,4 @@
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   route();
 })();
+

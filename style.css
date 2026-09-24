@@ -65,11 +65,6 @@ button {
   width: 28px;
   height: 28px;
   border-radius: 9px;
-  background: var(--green);
-  color: var(--lime);
-  display: grid;
-  place-items: center;
-  font-size: 19px;
 }
 .icon-button {
   border: 0;
@@ -324,6 +319,28 @@ button {
   font-size: 27px;
   letter-spacing: -0.05em;
   margin: 0;
+}
+.session-heading {
+  min-width: 0;
+  flex: 1;
+}
+.session-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.session-name-edit {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px;
+  cursor: pointer;
+  font-size: 17px;
+}
+.session-name-input {
+  width: min(100%, 340px);
+  min-width: 0;
 }
 .session-head p {
   margin: 4px 0 0;
