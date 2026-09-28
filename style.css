@@ -790,6 +790,13 @@ button {
   padding: 20px;
   margin-top: 16px;
 }
+.form-card:not(.name-saved) .form-actions {
+  justify-content: flex-start;
+}
+.exercise-controls[hidden],
+.form-actions .primary[hidden] {
+  display: none;
+}
 .form-card h2 {
   font-size: 20px;
   letter-spacing: -0.04em;
@@ -867,6 +874,10 @@ select:focus {
   color: #565b52;
   font-size: 12px;
   line-height: 1.5;
+}
+.total-box .exercise-history {
+  grid-column: 1 / -1;
+  margin-top: 0;
 }
 .exercise-history[hidden] {
   display: none;
@@ -968,7 +979,9 @@ select:focus {
 .weight-types {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 3px;
 }
 .weight-option input {
   position: absolute;
@@ -980,15 +993,128 @@ select:focus {
   text-align: center;
   border: 1px solid var(--line);
   border-radius: 10px;
-  min-height: 48px;
+  min-height: 46px;
   font-weight: 650;
   background: #fff;
 }
 .weight-type-icon {
   display: block;
-  width: 46px;
-  height: 46px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
+}
+.load-selection-row {
+  display: block;
+}
+.load-controls-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.weight-selector-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.rep-stamp-control {
+  display: flex;
+  flex: 0 0 60px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.rep-wheel-field {
+  width: 60px;
+}
+.rep-wheel-field .field-label {
+  margin-bottom: 4px;
+  text-align: center;
+}
+.rep-wheel-field .number-wheel {
+  height: 132px;
+  border: 1px solid var(--line);
+}
+.rep-wheel-field .number-wheel-list {
+  padding-block: 44px;
+}
+.rep-wheel-field .number-wheel-item {
+  font-size: 20px;
+}
+.rep-wheel-field .number-wheel-item.is-selected {
+  font-size: 26px;
+}
+.stamp-button {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f0f3ed;
+  color: var(--green);
+}
+.stamp-button img {
+  display: block;
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+}
+.stamp-button:hover {
+  background: #e1e9e0;
+}
+.sets-field {
+  margin-top: 18px;
+}
+.recorded-sets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 8px;
+}
+.recorded-set {
+  position: relative;
+  display: flex;
+  min-height: 74px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 9px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+}
+.recorded-set.is-selected {
+  border-color: var(--green);
+  background: #edf3ec;
+  box-shadow: inset 0 0 0 1px var(--green);
+  padding-left: 30px;
+}
+.recorded-set:focus-visible {
+  outline: 3px solid #648571;
+  outline-offset: 2px;
+}
+.recorded-set b {
+  font-size: 12px;
+}
+.recorded-set small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.set-delete {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f4d8d5;
+  color: #842b28;
+  font-size: 17px;
+  line-height: 1;
 }
 .weight-option input:checked + span {
   background: var(--green);
@@ -999,7 +1125,7 @@ select:focus {
   background: #f3f3ec;
   border-radius: 15px;
   padding: 14px;
-  margin-top: 12px;
+  min-height: 100%;
 }
 .plates-wheels {
   overflow: hidden;
@@ -1261,9 +1387,10 @@ select:focus {
   font-variant-numeric: tabular-nums;
 }
 .total-box {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: 4px 12px;
   border-top: 1px solid #dedfd6;
   margin-top: 14px;
   padding-top: 13px;
@@ -1274,6 +1401,15 @@ select:focus {
   font-size: 22px;
   color: var(--green);
   letter-spacing: -0.04em;
+}
+.suggested-weight {
+  grid-column: 1 / -1;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 650;
+}
+.suggested-weight[hidden] {
+  display: none;
 }
 .form-actions {
   display: flex;
@@ -1514,4 +1650,19 @@ dialog::backdrop {
     padding: 8px 9px;
     font-size: 12px;
   }
+}
+@media (max-width: 360px) {
+  .weight-types {
+    gap: 2px;
+  }
+  .weight-option span {
+    min-height: 42px;
+  }
+  .weight-type-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .load-controls-row { gap: 6px; }
+  .rep-stamp-control { flex-basis: 54px; }
+  .rep-wheel-field { width: 54px; }
 }
