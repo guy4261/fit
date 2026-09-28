@@ -637,7 +637,14 @@
         setupNumberWheel('each', eachValues, up);
       } else {
         let kg = w.type === 'kettlebell' ? w.kg : 16;
-        p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}">${n}</button>`).join('')}</div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${kg} kg</b></div>`;
+        const kettlebellColors = {
+          12: 'light-blue',
+          16: 'yellow',
+          20: 'purple',
+          24: 'green',
+          28: 'orange',
+        };
+        p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option kettlebell-${kettlebellColors[n]}" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}"><svg class="kettlebell-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path class="kettlebell-handle" d="M23 23v-7a9 9 0 0 1 18 0v7"/><path class="kettlebell-body" d="M23 21h18l3 5c7 4 11 11 11 19 0 11-9 17-23 17S9 56 9 45c0-8 4-15 11-19l3-5Z"/><path class="kettlebell-highlight" d="M20 35c-3 3-5 7-5 11"/></svg><span class="kettlebell-weight">${n}</span></button>`).join('')}</div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${kg} kg</b></div>`;
         p.querySelectorAll('[data-kg]').forEach((button) => {
           button.onclick = () => {
             p.querySelectorAll('[data-kg]').forEach((option) =>
