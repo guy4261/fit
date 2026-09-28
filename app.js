@@ -109,28 +109,27 @@
       w.type === 'plates' && Number.isInteger(weight) ? weight.toFixed(1) : weight;
     return `${w.type === 'dumbbell' && w.count === 2 ? '2 × ' : ''}${displayWeight} kg`;
   }
-  function partOfDay(hour){
+  function partOfDay(hour) {
     var rv = null;
-    switch(true) {
-
-      case ( 4 <= hour && hour < 12):
+    switch (true) {
+      case 4 <= hour && hour < 12:
         rv = 'Morning';
         break;
 
-      case (12 <= hour && hour < 16):
+      case 12 <= hour && hour < 16:
         rv = 'Noon';
         break;
 
-      case (16 <= hour && hour < 19):
+      case 16 <= hour && hour < 19:
         rv = 'Afternoon';
         break;
 
-      case (19 <= hour && hour < 22):
+      case 19 <= hour && hour < 22:
         rv = 'Evening';
         break;
 
-      case (22 <= hour && hour < 24):
-      case (0  <= hour && hour <  4):
+      case 22 <= hour && hour < 24:
+      case 0 <= hour && hour < 4:
         rv = 'Night';
         break;
     }
@@ -282,6 +281,68 @@
     $('#start').onclick = () => {
       startSession();
     };
+  }
+  function renderAchievements() {
+    const exerciseMap = new Map();
+    data.sessions.forEach((session) => {
+      (session.exercises || []).forEach((exercise) => {
+        const name = String(exercise.name || '').trim();
+        if (!name) return;
+        const key = name.toLocaleLowerCase();
+        const entry = {
+          session,
+          exercise,
+          weight: total(exercise.weight || { type: 'body' }),
+          reps: Math.max(1, Number(exercise.reps) || 1),
+        };
+        if (!exerciseMap.has(key)) exerciseMap.set(key, { name, entries: [] });
+        exerciseMap.get(key).entries.push(entry);
+      });
+    });
+    const daysAgo = (date) => {
+      const day = new Date(date);
+      if (Number.isNaN(day.getTime())) return 'Date unknown';
+      const today = new Date();
+      const days = Math.max(
+        0,
+        Math.floor(
+          (new Date(today.getFullYear(), today.getMonth(), today.getDate()) -
+            new Date(day.getFullYear(), day.getMonth(), day.getDate())) /
+            86400000,
+        ),
+      );
+      return days === 0 ? 'Today' : `${days} day${days === 1 ? '' : 's'} ago`;
+    };
+    const weightText = (entry) =>
+      entry.exercise.weight?.type === 'body'
+        ? 'Body weight'
+        : `${entry.exercise.weight?.type === 'plates' && Number.isInteger(entry.weight) ? entry.weight.toFixed(1) : entry.weight} kg`;
+    const entries = [...exerciseMap.values()]
+      .map((group) => {
+        group.entries.sort((a, b) => new Date(a.session.date) - new Date(b.session.date));
+        const record = group.entries.reduce((best, entry) =>
+          entry.weight > best.weight ? entry : best,
+        );
+        return { ...group, record, latest: group.entries.at(-1) };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    app.innerHTML = `<div class="achievements-head"><div><p class="eyebrow">Your progress</p><h1>High Score</h1><p class="muted">Personal records and estimated one-rep maxes from your training history.</p></div></div>${
+      entries.length
+        ? `<div class="achievement-list">${entries
+            .map(({ name, entries: records, record, latest }) => {
+              const hasRepeat = records.length > 1;
+              const epley = record.weight * (1 + record.reps / 30);
+              const brzycki =
+                record.reps < 37 ? (record.weight * 36) / (37 - record.reps) : null;
+              const estimates =
+                record.exercise.weight?.type === 'body'
+                  ? '<p class="achievement-note">Body-weight exercises do not have a loaded-weight 1RM estimate.</p>'
+                  : `<div class="one-rm-values"><div><span>Epley 1RM</span><b>${epley.toFixed(1)} kg</b></div><div><span>Brzycki 1RM</span><b>${brzycki === null ? '—' : `${brzycki.toFixed(1)} kg`}</b></div></div><p class="achievement-note">Estimated from ${weightText(record)} × ${record.reps} reps.</p>`;
+              return `<article class="achievement-card"><div class="achievement-title"><h2>${esc(name)}</h2></div><div class="achievement-record"><span>Highest weight</span><b>${esc(weightText(record))}</b><small>${esc(daysAgo(record.session.date))} · ${record.reps} rep${record.reps === 1 ? '' : 's'}</small></div>${hasRepeat ? `<div class="achievement-latest"><span>Last performed</span><b>${esc(weightText(latest))}</b><small>${esc(daysAgo(latest.session.date))}</small></div>` : ''}${estimates}</article>`;
+            })
+            .join('')}</div>`
+        : '<div class="empty"><div class="empty-icon">🏆</div><b>No achievements yet</b>Your exercise records will appear here after you finish a session.</div>'
+    }`;
   }
   function startSession() {
     const date = new Date().toISOString();
@@ -647,13 +708,19 @@
         };
         p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option kettlebell-${kettlebellColors[n]}" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}"><svg class="kettlebell-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path class="kettlebell-handle" d="M23 23v-7a9 9 0 0 1 18 0v7"/><path class="kettlebell-body" d="M23 21h18l3 5c7 4 11 11 11 19 0 11-9 17-23 17S9 56 9 45c0-8 4-15 11-19l3-5Z"/><path class="kettlebell-highlight" d="M20 35c-3 3-5 7-5 11"/></svg><span class="kettlebell-weight">${n}</span></button>`).join('')}</div><div class="weight-row"><span class="weight-row-label">Kettlebells</span><div class="choice-toggle" role="group" aria-label="Number of kettlebells"><button type="button" data-count="1" aria-pressed="${count === 1}">1</button><button type="button" data-count="2" aria-pressed="${count === 2}">2</button></div></div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${count * kg} kg</b></div>`;
         const updateKettlebellTotal = () => {
-          const selectedKg = Number(p.querySelector('[data-kg][aria-pressed="true"]').dataset.kg);
-          const selectedCount = Number(p.querySelector('[data-count][aria-pressed="true"]').dataset.count);
+          const selectedKg = Number(
+            p.querySelector('[data-kg][aria-pressed="true"]').dataset.kg,
+          );
+          const selectedCount = Number(
+            p.querySelector('[data-count][aria-pressed="true"]').dataset.count,
+          );
           $('#total').textContent = `${selectedCount * selectedKg} kg`;
         };
         p.querySelectorAll('[data-count]').forEach((button) => {
           button.onclick = () => {
-            p.querySelectorAll('[data-count]').forEach((option) => option.setAttribute('aria-pressed', option === button));
+            p.querySelectorAll('[data-count]').forEach((option) =>
+              option.setAttribute('aria-pressed', option === button),
+            );
             updateKettlebellTotal();
           };
         });
@@ -693,7 +760,8 @@
                 ? {
                     type: t,
                     kg: +$('#weight-panel [data-kg][aria-pressed="true"]').dataset.kg,
-                    count: +$('#weight-panel [data-count][aria-pressed="true"]').dataset.count,
+                    count: +$('#weight-panel [data-count][aria-pressed="true"]').dataset
+                      .count,
                   }
                 : t === 'plates'
                   ? {
@@ -881,6 +949,7 @@
   function route() {
     let m = location.hash.match(/^#session\/([^/]+)$/);
     if (m) renderSaved(decodeURIComponent(m[1]));
+    else if (location.hash === '#achievements') renderAchievements();
     else if (location.hash === '#home' || location.hash === '#history') renderHome();
     else startSession();
   }
@@ -1158,7 +1227,13 @@
                 each: readNumber(cells, 'each kg'),
               }
             : weightType === 'kettlebell'
-              ? { type: weightType, kg: readNumber(cells, 'kettlebell kg'), count: headers.has('kettlebell count') ? (readNumber(cells, 'kettlebell count') || 1) : 1 }
+              ? {
+                  type: weightType,
+                  kg: readNumber(cells, 'kettlebell kg'),
+                  count: headers.has('kettlebell count')
+                    ? readNumber(cells, 'kettlebell count') || 1
+                    : 1,
+                }
               : weightType === 'plates'
                 ? {
                     type: weightType,
