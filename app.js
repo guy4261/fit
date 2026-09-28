@@ -23,6 +23,98 @@
     'Sumo Squat',
     'Triceps Ex',
   ];
+  const EXAMPLE_SESSION = {
+    id: 'example-session-2026-01-01',
+    date: '2026-01-01T09:00:00.000Z',
+    title: 'Example Session',
+    startTime: '09:00',
+    endTime: '09:35',
+    exercises: [
+      {
+        name: 'Push Up',
+        sets: 2,
+        reps: 10,
+        weight: { type: 'body' },
+        setEntries: [
+          { reps: 8, weight: { type: 'body' } },
+          { reps: 10, weight: { type: 'body' } },
+        ],
+      },
+      {
+        name: 'Shoulder Lateral Raises',
+        sets: 3,
+        reps: 12,
+        weight: { type: 'plates', integer: 0, fraction: 0.25 },
+        setEntries: [
+          { reps: 10, weight: { type: 'plates', integer: 0, fraction: 0.25 } },
+          { reps: 12, weight: { type: 'plates', integer: 0, fraction: 0.25 } },
+          { reps: 10, weight: { type: 'plates', integer: 0, fraction: 0.25 } },
+        ],
+      },
+      {
+        name: 'Back Squat',
+        sets: 3,
+        reps: 6,
+        weight: {
+          type: 'barbell',
+          bar: 15,
+          side: 0,
+          plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+        },
+        setEntries: [
+          {
+            reps: 8,
+            weight: {
+              type: 'barbell',
+              bar: 15,
+              side: 0,
+              plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+            },
+          },
+          {
+            reps: 7,
+            weight: {
+              type: 'barbell',
+              bar: 15,
+              side: 0,
+              plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+            },
+          },
+          {
+            reps: 6,
+            weight: {
+              type: 'barbell',
+              bar: 15,
+              side: 0,
+              plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+            },
+          },
+        ],
+      },
+      {
+        name: 'Shoulder Press',
+        sets: 3,
+        reps: 10,
+        weight: { type: 'dumbbell', count: 1, each: 1.25 },
+        setEntries: [
+          { reps: 8, weight: { type: 'dumbbell', count: 1, each: 1.25 } },
+          { reps: 10, weight: { type: 'dumbbell', count: 1, each: 1.25 } },
+          { reps: 8, weight: { type: 'dumbbell', count: 1, each: 1.25 } },
+        ],
+      },
+      {
+        name: 'Deadlift',
+        sets: 3,
+        reps: 10,
+        weight: { type: 'kettlebell', kg: 12, count: 1 },
+        setEntries: [
+          { reps: 8, weight: { type: 'kettlebell', kg: 12, count: 1 } },
+          { reps: 10, weight: { type: 'kettlebell', kg: 12, count: 1 } },
+          { reps: 12, weight: { type: 'kettlebell', kg: 12, count: 1 } },
+        ],
+      },
+    ],
+  };
   const normalizeExerciseName = (name) =>
     String(name || '')
       .trim()
@@ -72,7 +164,13 @@
   }
   function read() {
     try {
-      let d = JSON.parse(localStorage.getItem(KEY) || '{}');
+      const stored = localStorage.getItem(KEY);
+      let d = JSON.parse(stored || '{}');
+      if (stored === null) {
+        const initial = { sessions: [EXAMPLE_SESSION], names: [] };
+        localStorage.setItem(KEY, JSON.stringify(initial));
+        d = initial;
+      }
       return {
         sessions: Array.isArray(d.sessions) ? d.sessions.map(migrateSession) : [],
         names: Array.isArray(d.names) ? d.names : [],
