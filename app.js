@@ -97,7 +97,7 @@
       : w.type === 'dumbbell'
         ? w.count * w.each
         : w.type === 'kettlebell'
-          ? w.kg
+          ? (w.count || 1) * w.kg
           : w.type === 'plates'
             ? Number(w.integer) + Number(w.fraction)
             : 0;
@@ -637,13 +637,32 @@
         setupNumberWheel('each', eachValues, up);
       } else {
         let kg = w.type === 'kettlebell' ? w.kg : 16;
-        p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}">${n}</button>`).join('')}</div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${kg} kg</b></div>`;
+        let count = w.type === 'kettlebell' ? w.count || 1 : 1;
+        const kettlebellColors = {
+          12: 'light-blue',
+          16: 'yellow',
+          20: 'purple',
+          24: 'green',
+          28: 'orange',
+        };
+        p.innerHTML = `<div class="kettlebell-options" role="group" aria-label="Kettlebell weight">${[12, 16, 20, 24, 28].map((n) => `<button class="kettlebell-option kettlebell-${kettlebellColors[n]}" type="button" data-kg="${n}" aria-label="${n} kilograms" aria-pressed="${n === kg}"><svg class="kettlebell-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path class="kettlebell-handle" d="M23 23v-7a9 9 0 0 1 18 0v7"/><path class="kettlebell-body" d="M23 21h18l3 5c7 4 11 11 11 19 0 11-9 17-23 17S9 56 9 45c0-8 4-15 11-19l3-5Z"/><path class="kettlebell-highlight" d="M20 35c-3 3-5 7-5 11"/></svg><span class="kettlebell-weight">${n}</span></button>`).join('')}</div><div class="weight-row"><span class="weight-row-label">Kettlebells</span><div class="choice-toggle" role="group" aria-label="Number of kettlebells"><button type="button" data-count="1" aria-pressed="${count === 1}">1</button><button type="button" data-count="2" aria-pressed="${count === 2}">2</button></div></div><div class="total-box"><span>Total kettlebell weight</span><b id="total">${count * kg} kg</b></div>`;
+        const updateKettlebellTotal = () => {
+          const selectedKg = Number(p.querySelector('[data-kg][aria-pressed="true"]').dataset.kg);
+          const selectedCount = Number(p.querySelector('[data-count][aria-pressed="true"]').dataset.count);
+          $('#total').textContent = `${selectedCount * selectedKg} kg`;
+        };
+        p.querySelectorAll('[data-count]').forEach((button) => {
+          button.onclick = () => {
+            p.querySelectorAll('[data-count]').forEach((option) => option.setAttribute('aria-pressed', option === button));
+            updateKettlebellTotal();
+          };
+        });
         p.querySelectorAll('[data-kg]').forEach((button) => {
           button.onclick = () => {
             p.querySelectorAll('[data-kg]').forEach((option) =>
               option.setAttribute('aria-pressed', option === button),
             );
-            $('#total').textContent = button.dataset.kg + ' kg';
+            updateKettlebellTotal();
           };
         });
       }
@@ -674,6 +693,7 @@
                 ? {
                     type: t,
                     kg: +$('#weight-panel [data-kg][aria-pressed="true"]').dataset.kg,
+                    count: +$('#weight-panel [data-count][aria-pressed="true"]').dataset.count,
                   }
                 : t === 'plates'
                   ? {
@@ -917,6 +937,7 @@
     'Dumbbells',
     'Each kg',
     'Kettlebell kg',
+    'Kettlebell count',
     'Plates whole kg',
     'Plates fraction kg',
   ];
@@ -950,6 +971,7 @@
           weight.type === 'dumbbell' ? weight.count : '',
           weight.type === 'dumbbell' ? weight.each : '',
           weight.type === 'kettlebell' ? weight.kg : '',
+          weight.type === 'kettlebell' ? weight.count || 1 : '',
           weight.type === 'plates' ? weight.integer : '',
           weight.type === 'plates' ? weight.fraction : '',
         ]);
@@ -1136,7 +1158,7 @@
                 each: readNumber(cells, 'each kg'),
               }
             : weightType === 'kettlebell'
-              ? { type: weightType, kg: readNumber(cells, 'kettlebell kg') }
+              ? { type: weightType, kg: readNumber(cells, 'kettlebell kg'), count: headers.has('kettlebell count') ? (readNumber(cells, 'kettlebell count') || 1) : 1 }
               : weightType === 'plates'
                 ? {
                     type: weightType,
