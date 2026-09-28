@@ -1363,4 +1363,12 @@
   if ('serviceWorker' in navigator && location.protocol !== 'file:')
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   route();
+  const splash = $('#splash-screen');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      splash.classList.add('is-hiding');
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+      setTimeout(() => splash.remove(), 400);
+    });
+  });
 })();

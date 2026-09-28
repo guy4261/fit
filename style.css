@@ -20,6 +20,62 @@
 * {
   box-sizing: border-box;
 }
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--paper);
+  opacity: 1;
+  transition: opacity 260ms ease;
+}
+.splash-screen.is-hiding {
+  opacity: 0;
+  pointer-events: none;
+}
+.splash-mascot {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+  border-radius: 28px;
+  animation: splash-bob 1.3s ease-in-out infinite alternate;
+}
+.splash-name {
+  color: var(--green);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.06em;
+}
+.splash-loader {
+  width: 34px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.splash-loader::after {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lime);
+  content: '';
+  animation: splash-loading 900ms ease-in-out infinite alternate;
+}
+@keyframes splash-bob {
+  to { transform: translateY(-6px); }
+}
+@keyframes splash-loading {
+  to { transform: translateX(125%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-screen { transition: none; }
+  .splash-mascot, .splash-loader::after { animation: none; }
+}
 body {
   margin: 0;
   min-height: 100dvh;
