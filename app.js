@@ -59,7 +59,7 @@
           type: 'barbell',
           bar: 15,
           side: 0,
-          plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+          plates: { 1.25: 0, 2.5: 0, 5: 0, 10: 0, 15: 0, 20: 0 },
         },
         setEntries: [
           {
@@ -68,7 +68,7 @@
               type: 'barbell',
               bar: 15,
               side: 0,
-              plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+              plates: { 1.25: 0, 2.5: 0, 5: 0, 10: 0, 15: 0, 20: 0 },
             },
           },
           {
@@ -77,7 +77,7 @@
               type: 'barbell',
               bar: 15,
               side: 0,
-              plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+              plates: { 1.25: 0, 2.5: 0, 5: 0, 10: 0, 15: 0, 20: 0 },
             },
           },
           {
@@ -86,7 +86,7 @@
               type: 'barbell',
               bar: 15,
               side: 0,
-              plates: { '1.25': 0, '2.5': 0, '5': 0, '10': 0, '15': 0, '20': 0 },
+              plates: { 1.25: 0, 2.5: 0, 5: 0, 10: 0, 15: 0, 20: 0 },
             },
           },
         ],
@@ -520,15 +520,13 @@
             : [{ weight: exercise.weight || { type: 'body' }, reps: exercise.reps }];
         setEntries.forEach((set) => {
           const weight = set.weight || exercise.weight || { type: 'body' };
-          exerciseMap
-            .get(key)
-            .entries.push({
-              session,
-              exercise,
-              weight: total(weight),
-              weightType: weight.type,
-              reps: Math.max(0, Number(set.reps) || 0),
-            });
+          exerciseMap.get(key).entries.push({
+            session,
+            exercise,
+            weight: total(weight),
+            weightType: weight.type,
+            reps: Math.max(0, Number(set.reps) || 0),
+          });
         });
       });
     });
@@ -753,7 +751,7 @@
       'Reps',
       initialReps,
       Array.from({ length: 51 }, (_, number) => number),
-    )}</div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${recordedSets.length ? '' : 'disabled'}>Done</button></div></form>`;
+    )}</div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'} ${recordedSets.length ? '' : 'disabled'}>Done</button></div></form>`;
     const form = $('#form');
     function updateWeightSuggestions(name = $('#name-label', form)?.textContent || '') {
       const history = $('#exercise-history', form);
@@ -829,6 +827,7 @@
         label.replaceWith(editable);
         form.classList.remove('name-saved');
         $('.exercise-controls', form).hidden = true;
+        $('#done', form).hidden = true;
         $('#exercise-history', form).hidden = true;
         updateWeightSuggestions('');
         button.textContent = '💾';
