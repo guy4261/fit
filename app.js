@@ -3,9 +3,22 @@
     $ = (q, r = document) => r.querySelector(q),
     app = $('#app');
   const BARBELL_PLATES = [1.25, 2.5, 5, 10, 15, 20];
+  const STANDARD_EXERCISES = [
+    'Back Squat', 'Banded Tricep Pulldown', 'Bench Press', 'Bent-Over Row',
+    'Deadlift', 'Hip Thrust', 'Knee Abduction', 'Knees to Chest', 'Pull Over',
+    'Pull Up', 'Push Press', 'Push Up', 'Shoulder Lateral Raises',
+    'Shoulder Press', 'Squat', 'Step Up', 'Sumo Squat', 'Triceps Ex',
+  ];
+  const normalizeExerciseName = (name) =>
+    String(name || '').trim().replace(/-/g, ' ').replace(/\s+/g, ' ').toLocaleLowerCase();
+  function preferredExerciseName(name) {
+    const normalized = normalizeExerciseName(name);
+    return STANDARD_EXERCISES.find((standard) => normalizeExerciseName(standard) === normalized) || String(name).trim();
+  }
   let data = read(),
     active = null,
     reorderMode = false,
+    historyOrder = localStorage.getItem('form-training-log-history-order') === 'oldest' ? 'oldest' : 'latest',
     validateActiveSessionTimes = () => true;
   function migrateSession(session) {
     const exercises = Array.isArray(session.exercises) ? session.exercises : [];
@@ -226,6 +239,7 @@
     };
   }
   function exerciseHistory(name) {
+    name = preferredExerciseName(name);
     const matches = data.sessions.flatMap((session) =>
       session.exercises
         .filter(
@@ -267,13 +281,16 @@
     return `<p>${esc(recordText)}</p>${latest.session !== record.session ? `<p>${esc(latestText)}</p>` : ''}`;
   }
   function renderHome() {
-    const ss = [...data.sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    app.innerHTML = `<section class="hero"><button class="primary" id="start">＋ &nbsp;Start a session</button></section><div class="section-title"><h2>Training history</h2><span>${ss.length} ${ss.length === 1 ? 'session' : 'sessions'}</span></div>${
+    const ss = [...data.sessions].sort((a, b) =>
+      (new Date(a.date) - new Date(b.date)) * (historyOrder === 'oldest' ? 1 : -1),
+    );
+    const selectedIds = new Set();
+    app.innerHTML = `<section class="hero"><button class="primary" id="start">＋ &nbsp;Start a session</button></section><div class="section-title history-title"><div><h2>Training history</h2><span>${ss.length} ${ss.length === 1 ? 'session' : 'sessions'}</span></div><button class="secondary history-order" id="history-order" type="button" aria-label="Show ${historyOrder === 'latest' ? 'oldest' : 'latest'} sessions first" title="Show ${historyOrder === 'latest' ? 'oldest' : 'latest'} sessions first">${historyOrder === 'latest' ? '↑' : '↓'}</button></div>${
       ss.length
-        ? `<div class="session-list">${ss
+        ? `<div class="history-selection"><label class="select-all"><input type="checkbox" id="select-all-sessions"><span>Select all</span></label><button class="secondary history-delete-selected" id="delete-selected" type="button" disabled>Delete selected <span id="selected-count">0</span></button></div><div class="session-list">${ss
             .map((s) => {
               let d = new Date(s.date);
-              return `<a href="#session/${encodeURIComponent(s.id)}" class="session-row"><span class="session-date"><b>${d.getDate()}</b><small>${d.toLocaleString(undefined, { month: 'short' })}</small></span><span class="session-info"><b>${esc(s.title)}</b><small>${s.exercises.length} exercises</small></span><span class="arrow">›</span></a>`;
+              return `<div class="session-row"><label class="session-select" aria-label="Select ${esc(s.title)}"><input type="checkbox" data-session-select="${esc(s.id)}"><span class="visually-hidden">Select session</span></label><a href="#session/${encodeURIComponent(s.id)}" class="session-link"><span class="session-date"><b>${d.getDate()}</b><small>${d.toLocaleString(undefined, { month: 'short' })}</small></span><span class="session-info"><b>${esc(s.title)}</b><small>${s.exercises.length} exercises</small></span><span class="arrow">›</span></a><button type="button" class="session-delete" data-session-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}" title="Delete session">Delete</button></div>`;
             })
             .join('')}</div>`
         : `<div class="empty"><div class="empty-icon">🏋️</div><b>Your first session starts here</b>Your training history will show up after you finish a session.</div>`
@@ -281,6 +298,50 @@
     $('#start').onclick = () => {
       startSession();
     };
+    $('#history-order').onclick = () => {
+      historyOrder = historyOrder === 'latest' ? 'oldest' : 'latest';
+      localStorage.setItem('form-training-log-history-order', historyOrder);
+      renderHome();
+    };
+    const selectAll = $('#select-all-sessions');
+    if (selectAll) {
+      const boxes = [...app.querySelectorAll('[data-session-select]')];
+      const updateSelection = () => {
+        const count = boxes.filter((box) => box.checked).length;
+        $('#selected-count').textContent = count;
+        $('#delete-selected').disabled = count === 0;
+        selectAll.checked = count === boxes.length;
+        selectAll.indeterminate = count > 0 && count < boxes.length;
+      };
+      boxes.forEach((box) => box.addEventListener('change', () => {
+        if (box.checked) selectedIds.add(box.dataset.sessionSelect);
+        else selectedIds.delete(box.dataset.sessionSelect);
+        updateSelection();
+      }));
+      selectAll.addEventListener('change', () => {
+        boxes.forEach((box) => {
+          box.checked = selectAll.checked;
+          if (box.checked) selectedIds.add(box.dataset.sessionSelect);
+          else selectedIds.delete(box.dataset.sessionSelect);
+        });
+        updateSelection();
+      });
+      $('#delete-selected').onclick = () => {
+        if (!selectedIds.size || !confirm(`Delete ${selectedIds.size} selected ${selectedIds.size === 1 ? 'session' : 'sessions'}? This cannot be undone.`)) return;
+        data.sessions = data.sessions.filter((session) => !selectedIds.has(String(session.id)));
+        save();
+        renderHome();
+      };
+      app.querySelectorAll('[data-session-delete]').forEach((button) => {
+        button.onclick = () => {
+          const session = data.sessions.find((item) => String(item.id) === button.dataset.sessionDelete);
+          if (!session || !confirm(`Delete “${session.title}”? This cannot be undone.`)) return;
+          data.sessions = data.sessions.filter((item) => String(item.id) !== button.dataset.sessionDelete);
+          save();
+          renderHome();
+        };
+      });
+    }
   }
   function renderAchievements() {
     const exerciseMap = new Map();
@@ -496,12 +557,12 @@
       label,
       value,
       values = Array.from({ length: 1000 }, (_, number) => number),
-      format = (number) => String(number).padStart(3, '0'),
+      format = (number) => String(number),
     ) => {
       value = values.includes(Number(value)) ? Number(value) : values[0];
       return `<div class="number-wheel" id="${id}" role="spinbutton" tabindex="0" aria-label="${label}" aria-valuemin="${values[0]}" aria-valuemax="${values.at(-1)}" aria-valuenow="${value}" aria-valuetext="${value}" data-value="${value}"><div class="number-wheel-viewport"><div class="number-wheel-list">${values.map((number, index) => `<div class="number-wheel-item${number === value ? ' is-selected' : ''}" data-index="${index}" data-value="${number}" aria-hidden="true">${format(number)}</div>`).join('')}</div></div></div>`;
     };
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields exercise-count-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets)}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps)}</div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container"><input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off"><button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="Save exercise name" title="Save exercise name">💾</button></div><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div></div><div class="split-fields exercise-count-fields"><div class="field"><label for="sets">Sets</label>${numberWheel('sets', 'Sets', ex.sets, undefined, (number) => String(number).padStart(3, '0'))}</div><div class="field"><label for="reps">Repetitions</label>${numberWheel('reps', 'Repetitions', ex.reps, undefined, (number) => String(number).padStart(3, '0'))}</div></div><div class="field"><span class="field-label">Load type</span><div class="weight-types">${[
       ['body', 'Body'],
       ['plates', 'Plates'],
       ['barbell', 'Barbell'],
@@ -770,11 +831,11 @@
                       fraction: Number($('#plate-fraction', form).dataset.value),
                     }
                   : { type: 'body' },
-        name = (
+        name = preferredExerciseName((
           $('#name', form)?.value ??
           $('#name-label', form)?.textContent ??
           ''
-        ).trim();
+        ));
       let result = {
         name,
         sets: Number($('#sets', form).dataset.value),
@@ -783,7 +844,7 @@
       };
       if (index === null) session.exercises.push(result);
       else session.exercises[index] = result;
-      if (!data.names.some((n) => n.toLowerCase() === name.toLowerCase()))
+      if (!data.names.some((n) => normalizeExerciseName(n) === normalizeExerciseName(name)))
         data.names.push(name);
       save();
       returnToSession();
@@ -877,14 +938,13 @@
             ) {
               throw new Error('The QR code must contain a JSON list of exercise names.');
             }
-            const names = [...new Set(parsed.map((name) => name.trim()))];
+            const names = [...new Map(parsed.map((name) => {
+              const preferred = preferredExerciseName(name);
+              return [normalizeExerciseName(preferred), preferred];
+            })).values()];
             if (!names.length) throw new Error('The QR code does not contain any names.');
             for (const name of names) {
-              if (
-                !data.names.some(
-                  (savedName) => savedName.toLowerCase() === name.toLowerCase(),
-                )
-              )
+              if (!data.names.some((savedName) => normalizeExerciseName(savedName) === normalizeExerciseName(name)))
                 data.names.push(name);
               active.exercises.push({
                 name,
@@ -947,6 +1007,12 @@
     };
   }
   function route() {
+    // A fresh visit should land on the training history. Keep explicit routes
+    // intact, and normalize only an empty fragment to the history route.
+    if (!location.hash) {
+      location.replace(`${location.pathname}${location.search}#home`);
+      return;
+    }
     let m = location.hash.match(/^#session\/([^/]+)$/);
     if (m) renderSaved(decodeURIComponent(m[1]));
     else if (location.hash === '#achievements') renderAchievements();
@@ -1270,7 +1336,10 @@
       data.sessions = importedSessions;
       data.names = [
         ...new Map(
-          [...data.names, ...importedNames].map((name) => [name.toLowerCase(), name]),
+          [...STANDARD_EXERCISES, ...data.names, ...importedNames].map((name) => {
+            const preferred = preferredExerciseName(name);
+            return [normalizeExerciseName(preferred), preferred];
+          }),
         ).values(),
       ];
       save();
@@ -1293,13 +1362,17 @@
         throw Error('This file does not look like a fit24 backup.');
       data.sessions = parsed.sessions.map(migrateSession);
       data.names = [
-        ...new Set([
+        ...new Map([
+          ...STANDARD_EXERCISES,
           ...(data.names || []),
           ...(parsed.names || []),
           ...parsed.sessions.flatMap((s) =>
             s.exercises.map((x) => x.name).filter(Boolean),
           ),
-        ]),
+        ].map((name) => {
+          const preferred = preferredExerciseName(name);
+          return [normalizeExerciseName(preferred), preferred];
+        })).values(),
       ];
       save();
       $('#dialog-status').textContent = `Imported ${parsed.sessions.length} sessions.`;
@@ -1425,9 +1498,24 @@
   };
   function updateNames() {
     if ($('#exercise-suggestions'))
-      $('#exercise-suggestions').innerHTML = data.names
-        .map((n) => `<option value="${esc(n)}">`)
+      $('#exercise-suggestions').innerHTML = [...new Map(
+        [...STANDARD_EXERCISES, ...data.names].map((name) => {
+          const preferred = preferredExerciseName(name);
+          return [normalizeExerciseName(preferred), preferred];
+        }),
+      ).values()]
+        .map((name) => `<option value="${esc(name)}">`)
         .join('');
+    const input = $('#name');
+    if (input && !input.dataset.normalizationBound) {
+      const normalizeExactMatch = () => {
+        const value = input.value.trim();
+        if (value) input.value = preferredExerciseName(value);
+      };
+      input.addEventListener('change', normalizeExactMatch);
+      input.addEventListener('blur', normalizeExactMatch);
+      input.dataset.normalizationBound = 'true';
+    }
   }
   let home = renderHome;
   renderHome = () => {
