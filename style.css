@@ -967,8 +967,8 @@ select:focus {
 }
 .weight-types {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
 }
 .weight-option input {
   position: absolute;
@@ -979,11 +979,16 @@ select:focus {
   place-items: center;
   text-align: center;
   border: 1px solid var(--line);
-  border-radius: 11px;
-  min-height: 44px;
-  font-size: 11px;
+  border-radius: 10px;
+  min-height: 48px;
   font-weight: 650;
   background: #fff;
+}
+.weight-type-icon {
+  display: block;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
 }
 .weight-option input:checked + span {
   background: var(--green);
