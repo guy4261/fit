@@ -157,6 +157,21 @@
       ></div>
       <p id="session-qr-status" class="status" role="status"></p>
     </dialog>
+    <dialog id="exercise-note-dialog" class="data-dialog exercise-note-dialog">
+      <form id="exercise-note-form">
+        <div class="dialog-head">
+          <h2>Exercise note</h2>
+        </div>
+        <div class="field">
+          <label for="exercise-note-input">Note</label>
+          <textarea id="exercise-note-input" class="text-input" rows="5"></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="secondary" id="cancel-exercise-note" type="button">Cancel</button>
+          <button class="primary" type="submit">Save</button>
+        </div>
+      </form>
+    </dialog>
     <datalist id="exercise-suggestions"></datalist>
   </body>
 </html>

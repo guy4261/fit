@@ -3,6 +3,7 @@
     $ = (q, r = document) => r.querySelector(q),
     app = $('#app');
   const BARBELL_PLATES = [1.25, 2.5, 5, 10, 15, 20];
+  const REPS_TYPES = ['Per-Side', 'Reps', 'Seconds'];
   const STANDARD_EXERCISES = [
     'Back Squat',
     'Banded Tricep Pulldown',
@@ -123,11 +124,20 @@
       .toLocaleLowerCase();
   function preferredExerciseName(name) {
     const normalized = normalizeExerciseName(name);
-    return (
-      STANDARD_EXERCISES.find(
-        (standard) => normalizeExerciseName(standard) === normalized,
-      ) || String(name).trim()
+    const standard = STANDARD_EXERCISES.find(
+      (exercise) => normalizeExerciseName(exercise) === normalized,
     );
+    if (standard) return standard;
+    return String(name || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .map((word) =>
+        word === word.toLocaleUpperCase()
+          ? word
+          : word.charAt(0).toLocaleUpperCase() + word.slice(1),
+      )
+      .join(' ');
   }
   let data = read(),
     active = null,
@@ -249,11 +259,18 @@
     const entries = Array.isArray(exercise.setEntries) ? exercise.setEntries : [];
     if (!entries.length) return '';
     const reps = entries.map((set) => Number(set.reps) || 0).join(' / ');
+    const repsType = REPS_TYPES.includes(entries[0].reps_type)
+      ? entries[0].reps_type
+      : 'Reps';
     const repsLabel =
       entries.length === 1
-        ? `${reps} rep${Number(entries[0].reps) === 1 ? '' : 's'}`
-        : `${reps} reps`;
+        ? `${reps} ${repsType.toLowerCase() === 'reps' ? `rep${Number(entries[0].reps) === 1 ? '' : 's'}` : repsType.toLowerCase()}`
+        : `${reps} ${repsType.toLowerCase()}`;
     return `<p class="details">${entries.length} set${entries.length === 1 ? '' : 's'} · ${repsLabel}</p>`;
+  }
+  function exerciseNoteHtml(exercise) {
+    const note = typeof exercise.note === 'string' ? exercise.note.trim() : '';
+    return note ? `<p class="exercise-note">${esc(note)}</p>` : '';
   }
   function partOfDay(hour) {
     var rv = null;
@@ -590,7 +607,7 @@
   }
   function renderActive() {
     const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     validateActiveSessionTimes = bindSessionTimeInputs(active);
     bindSessionName(active, true);
     $('#back').onclick = () => {
@@ -704,11 +721,13 @@
       index === null
         ? {
             name: '',
+            note: null,
             sets: 1,
             reps: 1,
             weight: { type: 'body' },
           }
         : structuredClone(session.exercises[index]);
+    ex.note = typeof ex.note === 'string' && ex.note.trim() ? ex.note : null;
     const boundedReps = (value) =>
       Math.min(50, Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 1));
     let recordedSets =
@@ -717,15 +736,20 @@
         : Array.isArray(ex.setEntries)
           ? ex.setEntries.map((set) => ({
               reps: boundedReps(set.reps),
+              reps_type: REPS_TYPES.includes(set.reps_type) ? set.reps_type : 'Reps',
               weight: structuredClone(set.weight || ex.weight || { type: 'body' }),
             }))
           : Array.from({ length: Math.max(1, Math.floor(Number(ex.sets) || 1)) }, () => ({
               reps: boundedReps(ex.reps),
+              reps_type: 'Reps',
               weight: structuredClone(ex.weight || { type: 'body' }),
             }));
-    let selectedSetIndex = recordedSets.length ? 0 : -1;
-    if (selectedSetIndex >= 0) ex.weight = structuredClone(recordedSets[0].weight);
-    const initialReps = recordedSets[selectedSetIndex]?.reps ?? boundedReps(ex.reps);
+    recordedSets.forEach((set) => {
+      if (!REPS_TYPES.includes(set.reps_type)) set.reps_type = 'Reps';
+    });
+    let selectedSetIndex = -1;
+    const initialReps = boundedReps(ex.reps);
+    let repsType = recordedSets[0]?.reps_type || 'Reps';
     const returnToSession = () =>
       session === active ? renderActive() : renderSaved(session.id);
     const numberWheel = (
@@ -746,13 +770,27 @@
       kettlebell: 'images/kettlebell.png',
     };
     const nameSaved = index !== null;
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card${nameSaved ? ' name-saved' : ''}" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container">${nameSaved ? `<span id="name-label" class="locked-exercise-name">${esc(ex.name)}</span>` : `<input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off">`}<button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="${nameSaved ? 'Edit' : 'Save'} exercise name" title="${nameSaved ? 'Edit' : 'Save'} exercise name">${nameSaved ? '✏️' : '💾'}</button></div></div><div class="exercise-controls"${nameSaved ? '' : ' hidden'}><div class="field"><span class="field-label">Load type</span><div class="load-selection-row"><div class="weight-types"><label class="weight-option"><input type="radio" name="type" value="body" aria-label="Body" title="Body" ${ex.weight.type === 'body' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.body}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="plates" aria-label="Plates" title="Plates" ${ex.weight.type === 'plates' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.plates}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="barbell" aria-label="Barbell" title="Barbell" ${ex.weight.type === 'barbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.barbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="dumbbell" aria-label="Dumbbell" title="Dumbbell" ${ex.weight.type === 'dumbbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.dumbbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="kettlebell" aria-label="Kettlebell" title="Kettlebell" ${ex.weight.type === 'kettlebell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.kettlebell}" alt="" aria-hidden="true"></span></label></div></div><div class="load-controls-row"><div class="weight-selector-container"><div id="weight-panel" class="weight-panel"></div></div><div class="rep-stamp-control"><div class="rep-wheel-field"><span class="field-label">Reps</span>${numberWheel(
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card${nameSaved ? ' name-saved' : ''}" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container">${nameSaved ? `<span id="name-label" class="locked-exercise-name">${esc(ex.name)}</span>` : `<input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off">`}<button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="${nameSaved ? 'Edit' : 'Save'} exercise name" title="${nameSaved ? 'Edit' : 'Save'} exercise name">${nameSaved ? '✏️' : '💾'}</button><button class="name-lock-button note-button" id="edit-exercise-note" type="button" aria-label="Add exercise note" title="Add exercise note">🗒️</button></div></div><div class="exercise-controls"${nameSaved ? '' : ' hidden'}><div class="field"><span class="field-label">Load type</span><div class="load-selection-row"><div class="weight-types"><label class="weight-option"><input type="radio" name="type" value="body" aria-label="Body" title="Body" ${ex.weight.type === 'body' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.body}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="plates" aria-label="Plates" title="Plates" ${ex.weight.type === 'plates' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.plates}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="barbell" aria-label="Barbell" title="Barbell" ${ex.weight.type === 'barbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.barbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="dumbbell" aria-label="Dumbbell" title="Dumbbell" ${ex.weight.type === 'dumbbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.dumbbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="kettlebell" aria-label="Kettlebell" title="Kettlebell" ${ex.weight.type === 'kettlebell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.kettlebell}" alt="" aria-hidden="true"></span></label></div></div><div class="load-controls-row"><div class="weight-selector-container"><div id="weight-panel" class="weight-panel"></div></div><div class="rep-stamp-control"><div class="rep-wheel-field"><span class="field-label">Number</span>${numberWheel(
       'set-reps',
-      'Reps',
+      'Reps value',
       initialReps,
       Array.from({ length: 51 }, (_, number) => number),
-    )}</div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'} ${recordedSets.length ? '' : 'disabled'}>Done</button></div></form>`;
+    )}</div><div class="reps-type-field"><span class="field-label">&nbsp;</span><div class="reps-type-wheel" id="reps-type-wheel" role="listbox" aria-label="Reps type" tabindex="0">${REPS_TYPES.map((type) => `<div class="reps-type-option${type === repsType ? ' is-selected' : ''}" data-reps-type="${type}" role="option" aria-selected="${type === repsType}">${type}</div>`).join('')}</div></div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'}>Done</button></div></form>`;
     const form = $('#form');
+    const noteDialog = $('#exercise-note-dialog');
+    const noteInput = $('#exercise-note-input');
+    let noteDraft = typeof ex.note === 'string' ? ex.note : '';
+    $('#edit-exercise-note').onclick = () => {
+      noteInput.value = noteDraft;
+      noteDialog.showModal();
+      noteInput.focus();
+    };
+    $('#cancel-exercise-note').onclick = () => noteDialog.close();
+    $('#exercise-note-form').onsubmit = (event) => {
+      event.preventDefault();
+      noteDraft = noteInput.value.trim();
+      noteDialog.close();
+    };
     function updateWeightSuggestions(name = $('#name-label', form)?.textContent || '') {
       const history = $('#exercise-history', form);
       if (history) {
@@ -793,7 +831,7 @@
       const button = event.currentTarget;
       const input = $('#name', form);
       if (input) {
-        const name = input.value.trim();
+        const name = preferredExerciseName(input.value);
         if (!name) {
           input.reportValidity();
           return;
@@ -819,8 +857,8 @@
         editable.id = 'name';
         editable.className = 'text-input';
         editable.setAttribute('list', 'exercise-suggestions');
-        editable.value = label.textContent;
-        editable.placeholder = 'e.g. Goblet squat';
+        editable.value = preferredExerciseName(label.textContent);
+        editable.placeholder = 'e.g. Goblet Squat';
         editable.required = true;
         editable.maxLength = 60;
         editable.autocomplete = 'off';
@@ -886,21 +924,25 @@
       Array.from({ length: 51 }, (_, number) => number),
       () => updateWeightSuggestions(),
     );
-    if (!nameSaved) $('#done', form).disabled = true;
     const recordedSetsElement = $('#recorded-sets', form);
     function renderRecordedSets() {
       recordedSetsElement.innerHTML = recordedSets
         .map(
           (set, setIndex) =>
-            `<div class="recorded-set${selectedSetIndex === setIndex ? ' is-selected' : ''}" data-set-index="${setIndex}" role="button" tabindex="0" aria-pressed="${selectedSetIndex === setIndex}" aria-label="Set ${setIndex + 1}: ${loadText(set.weight)}, ${set.reps} rep${Number(set.reps) === 1 ? '' : 's'}">${selectedSetIndex === setIndex ? `<button class="set-delete" type="button" data-delete-set="${setIndex}" aria-label="Delete set ${setIndex + 1}" title="Delete set">×</button>` : ''}<b>Set ${setIndex + 1}</b><span>${esc(loadText(set.weight))}</span><small>${set.reps} rep${Number(set.reps) === 1 ? '' : 's'}</small></div>`,
+            `<div class="recorded-set${selectedSetIndex === setIndex ? ' is-selected' : ''}" data-set-index="${setIndex}" role="button" tabindex="0" aria-pressed="${selectedSetIndex === setIndex}" aria-label="Set ${setIndex + 1}: ${loadText(set.weight)}, ${set.reps} ${set.reps_type}">${selectedSetIndex === setIndex ? `<button class="set-delete" type="button" data-delete-set="${setIndex}" aria-label="Delete set ${setIndex + 1}" title="Delete set">×</button>` : ''}<b>Set ${setIndex + 1}</b><span>${esc(loadText(set.weight))}</span><small>${set.reps} ${set.reps_type === 'Reps' ? `rep${Number(set.reps) === 1 ? '' : 's'}` : set.reps_type.toLowerCase()}</small></div>`,
         )
         .join('');
-      $('#done', form).disabled = recordedSets.length === 0;
     }
     function selectRecordedSet(setIndex) {
       const set = recordedSets[setIndex];
       if (!set) return;
+      if (selectedSetIndex === setIndex) {
+        selectedSetIndex = -1;
+        renderRecordedSets();
+        return;
+      }
       selectedSetIndex = setIndex;
+      selectRepsType(set.reps_type || 'Reps');
       ex.weight = structuredClone(set.weight);
       const radio = $(`input[name="type"][value="${set.weight.type}"]`, form);
       if (radio) radio.checked = true;
@@ -918,6 +960,34 @@
       repsViewport.style.removeProperty('scroll-behavior');
       renderRecordedSets();
     }
+    const repsTypeWheel = $('#reps-type-wheel');
+    function selectRepsType(type, scroll = true) {
+      if (!REPS_TYPES.includes(type)) return;
+      repsType = type;
+      const selectedOption = repsTypeWheel.querySelector(`[data-reps-type="${type}"]`);
+      form.querySelectorAll('[data-reps-type]').forEach((option) => {
+        const selected = option === selectedOption;
+        option.classList.toggle('is-selected', selected);
+        option.setAttribute('aria-selected', selected);
+      });
+      if (scroll) selectedOption?.scrollIntoView({ block: 'center', inline: 'nearest' });
+    }
+    repsTypeWheel.addEventListener('click', (event) => {
+      const option = event.target.closest('[data-reps-type]');
+      if (option) selectRepsType(option.dataset.repsType);
+    });
+    repsTypeWheel.addEventListener('keydown', (event) => {
+      const currentIndex = REPS_TYPES.indexOf(repsType);
+      let nextIndex = currentIndex;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') nextIndex = Math.min(REPS_TYPES.length - 1, currentIndex + 1);
+      else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') nextIndex = Math.max(0, currentIndex - 1);
+      else if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = REPS_TYPES.length - 1;
+      else return;
+      event.preventDefault();
+      selectRepsType(REPS_TYPES[nextIndex]);
+    });
+    requestAnimationFrame(() => selectRepsType(repsType));
     recordedSetsElement.addEventListener('click', (event) => {
       const deleteButton = event.target.closest('[data-delete-set]');
       const setCard = event.target.closest('[data-set-index]');
@@ -943,7 +1013,7 @@
         event.target.matches('[data-set-index]')
       ) {
         event.preventDefault();
-        selectRecordedSet(Number(event.target.dataset.setIndex));
+      selectRecordedSet(Number(event.target.dataset.setIndex));
       }
     });
     function panel() {
@@ -976,7 +1046,7 @@
       } else if (t === 'barbell') {
         let bar = w.type === 'barbell' ? w.bar : 0,
           plates = barbellPlateCounts(w);
-        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">−</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="barbell-plates"><div class="barbell-plates-head"><span class="weight-row-label" id="barbell-plate-label">${bar === 0 ? 'Plates for one hand' : 'Plates per side'}</span><button class="small-action" id="clear-barbell-plates" type="button">Clear all</button></div><div class="barbell-plate-grid" id="barbell-plate-grid" role="group" aria-label="Plate counts per side">${BARBELL_PLATES.map((kg) => `<div class="barbell-plate" data-plate="${kg}"><span class="barbell-plate-label">${kg} kg</span><div class="barbell-plate-controls"><button type="button" data-plate-step="1" aria-label="Add one ${kg} kilogram plate">＋</button><output data-plate-count>${plates[String(kg)]}</output><button type="button" data-plate-step="-1" aria-label="Remove one ${kg} kilogram plate">−</button></div></div>`).join('')}</div></div><div class="total-box"><span>Total barbell weight</span><b id="total" aria-live="polite">${bar === 0 ? barbellPerSide({ plates }) : bar + 2 * barbellPerSide({ plates })} kg</b><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div><small id="suggested-weight" class="suggested-weight" hidden></small></div>`;
+        p.innerHTML = `<div class="weight-row"><span class="weight-row-label">Bar weight</span><div class="choice-toggle" role="group" aria-label="Bar weight"><button type="button" data-bar="0" aria-label="Zero bar weight" aria-pressed="${bar === 0}">−</button><button type="button" data-bar="15" aria-pressed="${bar === 15}">15 kg</button><button type="button" data-bar="20" aria-pressed="${bar === 20}">20 kg</button></div></div><div class="barbell-plates"><div class="barbell-plates-head"><span class="weight-row-label" id="barbell-plate-label">${bar === 0 ? 'Plates for one hand' : 'Plates per side'}</span><button class="small-action" id="clear-barbell-plates" type="button">Clear all</button></div><div class="barbell-plate-grid" id="barbell-plate-grid" role="group" aria-label="Plate counts per side">${BARBELL_PLATES.map((kg) => `<div class="barbell-plate" data-plate="${kg}"><span class="barbell-plate-label">${kg}</span><div class="barbell-plate-controls"><button type="button" data-plate-step="1" aria-label="Add one ${kg} kilogram plate">＋</button><output data-plate-count>${plates[String(kg)]}</output><button type="button" data-plate-step="-1" aria-label="Remove one ${kg} kilogram plate">−</button></div></div>`).join('')}</div></div><div class="total-box"><span>Total barbell weight</span><b id="total" aria-live="polite">${bar === 0 ? barbellPerSide({ plates }) : bar + 2 * barbellPerSide({ plates })} kg</b><div id="exercise-history" class="exercise-history" aria-live="polite" hidden></div><small id="suggested-weight" class="suggested-weight" hidden></small></div>`;
         let up = () => {
           const selectedBar = +$('.choice-toggle [aria-pressed="true"]').dataset.bar;
           const perSide = barbellPerSide({ plates: readBarbellPlateCounts(p) });
@@ -1116,26 +1186,32 @@
     $('#record-set', form).onclick = () => {
       const entry = {
         reps: Number($('#set-reps', form).dataset.value),
+        reps_type: repsType,
         weight: readWeight(),
       };
-      recordedSets.push(entry);
-      selectedSetIndex = recordedSets.length - 1;
+      const stampedIndex = selectedSetIndex >= 0 ? selectedSetIndex : recordedSets.length;
+      if (selectedSetIndex >= 0) recordedSets[selectedSetIndex] = entry;
+      else recordedSets.push(entry);
       ex.weight = structuredClone(entry.weight);
+      selectedSetIndex = -1;
       renderRecordedSets();
-      recordedSetsElement.lastElementChild?.scrollIntoView({ block: 'nearest' });
+      recordedSetsElement
+        .querySelector(`[data-set-index="${stampedIndex}"]`)
+        ?.scrollIntoView({ block: 'nearest' });
     };
     form.onsubmit = (e) => {
       e.preventDefault();
       if (!form.reportValidity()) return;
-      if (!recordedSets.length) return;
-      const weight = structuredClone(recordedSets.at(-1).weight);
+      const weight = structuredClone(recordedSets.at(-1)?.weight ?? readWeight());
       const name = preferredExerciseName(
         $('#name', form)?.value ?? $('#name-label', form)?.textContent ?? '',
       );
       let result = {
         name,
+        note: noteDraft.trim() || null,
         sets: recordedSets.length,
-        reps: recordedSets.at(-1).reps,
+        reps: recordedSets.at(-1)?.reps ?? Number($('#set-reps', form).dataset.value),
+        reps_type: recordedSets.at(-1)?.reps_type ?? repsType,
         weight,
         setEntries: recordedSets,
       };
@@ -1294,7 +1370,7 @@
       location.hash = '';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(s.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(s.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
     bindSessionTimeInputs(s);
     bindSessionName(s, false);
     $('#saved-back').onclick = () => {
@@ -1630,7 +1706,7 @@
                 setEntries: (() => {
                   let entries;
                   try {
-                    entries = JSON.parse(readCell(cells, 'set details'));
+                    entries = JSON.parse(readCell(cells, 'set details')).map((set) => ({ ...set, reps_type: REPS_TYPES.includes(set.reps_type) ? set.reps_type : 'Reps' }));
                   } catch {
                     throw new Error(`Invalid set details on CSV row ${rowIndex + 2}.`);
                   }
@@ -1640,6 +1716,7 @@
                       (set) =>
                         !set ||
                         !Number.isInteger(Number(set.reps)) ||
+                        (set.reps_type !== undefined && !REPS_TYPES.includes(set.reps_type)) ||
                         Number(set.reps) < 0 ||
                         Number(set.reps) > 50 ||
                         !set.weight ||
@@ -1851,7 +1928,7 @@
     const input = $('#name');
     if (input && !input.dataset.normalizationBound) {
       const normalizeExactMatch = () => {
-        const value = input.value.trim();
+        const value = input.value;
         if (value) input.value = preferredExerciseName(value);
       };
       input.addEventListener('change', normalizeExactMatch);

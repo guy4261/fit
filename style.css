@@ -861,16 +861,29 @@ select:focus {
   background: var(--white);
   font-size: 21px;
 }
+.note-button {
+  font-size: 22px;
+}
+.exercise-note {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.exercise-note-dialog textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
 .name-lock-button:focus-visible {
   outline: 3px solid #648571;
   outline-offset: 2px;
 }
 .exercise-history {
   margin-top: 9px;
-  padding: 10px 12px;
-  border-left: 3px solid var(--lime);
-  border-radius: 0 10px 10px 0;
-  background: #f5f5ef;
+  padding: 0;
   color: #565b52;
   font-size: 12px;
   line-height: 1.5;
@@ -1024,6 +1037,48 @@ select:focus {
 }
 .rep-wheel-field {
   width: 60px;
+}
+.reps-type-field {
+  width: 76px;
+  flex: 0 0 76px;
+}
+.reps-type-wheel {
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 132px;
+  width: 76px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.reps-type-wheel::-webkit-scrollbar {
+  display: none;
+}
+.reps-type-option {
+  display: grid;
+  height: 44px;
+  width: 100%;
+  place-items: center;
+  padding: 3px;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  scroll-snap-align: center;
+  cursor: pointer;
+}
+.reps-type-option:last-child {
+  border-bottom: 0;
+}
+.reps-type-option.is-selected {
+  background: #edf3eb;
+  color: var(--green);
+  box-shadow: inset 0 0 0 2px var(--green);
 }
 .rep-wheel-field .field-label {
   margin-bottom: 4px;
