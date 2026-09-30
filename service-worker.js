@@ -1,4 +1,4 @@
-const CACHE = 'fit24-v32';
+const CACHE = 'fit24-v33';
 const FILES = [
   './',
   './index.html',
@@ -38,6 +38,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (event) => {
   if (
     event.request.method !== 'GET' ||
@@ -47,19 +51,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-
-      return fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            caches
-              .open(CACHE)
-              .then((cache) => cache.put(event.request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => caches.match('./index.html'));
-    }),
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const responseCopy = response.clone();
+          event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, responseCopy)));
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request);
+        return cachedResponse || caches.match('./index.html');
+      }),
   );
 });

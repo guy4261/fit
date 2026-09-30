@@ -1424,19 +1424,117 @@
     $('#dialog-status').textContent = '';
     updateJsonPreview();
   };
+  $('#refresh-app').onclick = async () => {
+    const status = $('#dialog-status');
+    const button = $('#refresh-app');
+    button.disabled = true;
+    status.textContent = 'Checking for updates…';
+    try {
+      if (!('serviceWorker' in navigator)) {
+        location.reload();
+        return;
+      }
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        location.reload();
+        return;
+      }
+      await registration.update();
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        await new Promise((resolve) => {
+          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+        });
+        location.reload();
+        return;
+      }
+      if (registration.installing) {
+        await new Promise((resolve) => {
+          const worker = registration.installing;
+          if (worker.state === 'activated') return resolve();
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'activated' || worker.state === 'redundant') resolve();
+          });
+        });
+        if (navigator.serviceWorker.controller) {
+          location.reload();
+          return;
+        }
+      }
+      location.reload();
+    } catch (error) {
+      status.textContent = error.message || 'Could not check for updates. Try again online.';
+      button.disabled = false;
+    }
+  };
   $('#close-dialog').onclick = () => dialog.close();
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog) dialog.close();
   });
-  $('#export-json').onclick = () => {
-    let blob = new Blob([backupJson()], { type: 'application/json' }),
-      url = URL.createObjectURL(blob),
-      a = document.createElement('a');
-    a.href = url;
-    a.download = `fit24-training-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    $('#dialog-status').textContent = 'Backup downloaded.';
+  function importBackupText(text) {
+    const parsed = JSON.parse(text);
+    if (
+      !parsed ||
+      !Array.isArray(parsed.sessions) ||
+      parsed.sessions.some(
+        (session) =>
+          !session ||
+          typeof session !== 'object' ||
+          !Array.isArray(session.exercises) ||
+          session.exercises.some((exercise) => !exercise || typeof exercise !== 'object'),
+      ) ||
+      (parsed.names !== undefined &&
+        (!Array.isArray(parsed.names) ||
+          parsed.names.some((name) => typeof name !== 'string')))
+    )
+      throw new Error('This does not look like a valid fit24 backup.');
+    const importedSessions = parsed.sessions.map(migrateSession);
+    data.sessions = importedSessions;
+    data.names = [
+      ...new Map(
+        [
+          ...STANDARD_EXERCISES,
+          ...data.names,
+          ...(parsed.names || []),
+          ...importedSessions.flatMap((session) =>
+            session.exercises.map((exercise) => exercise.name).filter(Boolean),
+          ),
+        ].map((name) => {
+          const preferred = preferredExerciseName(name);
+          return [normalizeExerciseName(preferred), preferred];
+        }),
+      ).values(),
+    ];
+    save();
+    $('#dialog-status').textContent = `Imported ${importedSessions.length} sessions.`;
+    updateJsonPreview();
+    renderHome();
+  }
+  $('#export-json').onclick = async () => {
+    const filename = `fit24-training-${new Date().toISOString().slice(0, 10)}.json`;
+    const blob = new Blob([backupJson()], { type: 'application/json' });
+    const file =
+      typeof File === 'undefined'
+        ? null
+        : new File([blob], filename, { type: blob.type });
+    if (file && navigator.canShare?.({ files: [file] }) && navigator.share) {
+      try {
+        await navigator.share({ files: [file], title: 'fit24 training backup' });
+        $('#dialog-status').textContent = 'Backup shared or saved.';
+      } catch (error) {
+        if (error.name !== 'AbortError')
+          $('#dialog-status').textContent =
+            error.message || 'Could not share the backup.';
+      }
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $('#dialog-status').textContent = 'Backup file saved.';
   };
   const barbellPlateColumns = BARBELL_PLATES.map((kg) => `${kg} kg plates per side`);
   const csvColumns = [
@@ -1769,32 +1867,7 @@
   };
   $('#import-file').onchange = async (e) => {
     try {
-      let parsed = JSON.parse(await e.target.files[0].text());
-      if (
-        !Array.isArray(parsed.sessions) ||
-        parsed.sessions.some((s) => !Array.isArray(s.exercises))
-      )
-        throw Error('This file does not look like a fit24 backup.');
-      data.sessions = parsed.sessions.map(migrateSession);
-      data.names = [
-        ...new Map(
-          [
-            ...STANDARD_EXERCISES,
-            ...(data.names || []),
-            ...(parsed.names || []),
-            ...parsed.sessions.flatMap((s) =>
-              s.exercises.map((x) => x.name).filter(Boolean),
-            ),
-          ].map((name) => {
-            const preferred = preferredExerciseName(name);
-            return [normalizeExerciseName(preferred), preferred];
-          }),
-        ).values(),
-      ];
-      save();
-      $('#dialog-status').textContent = `Imported ${parsed.sessions.length} sessions.`;
-      updateJsonPreview();
-      renderHome();
+      if (e.target.files[0]) importBackupText(await e.target.files[0].text());
     } catch (err) {
       $('#dialog-status').textContent = err.message || 'Could not read that file.';
     }
@@ -1813,6 +1886,20 @@
       $('#dialog-status').textContent = copied
         ? 'JSON copied to clipboard.'
         : 'Copy was blocked. Select and copy the JSON text.';
+    }
+  };
+  $('#paste-json').onclick = async () => {
+    try {
+      if (!navigator.clipboard?.readText)
+        throw new Error('Clipboard reading is not available in this browser.');
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) throw new Error('The clipboard is empty.');
+      importBackupText(text);
+    } catch (error) {
+      $('#dialog-status').textContent =
+        error.name === 'NotAllowedError'
+          ? 'Clipboard access was denied. Allow access and try again.'
+          : error.message || 'Could not read a valid backup from the clipboard.';
     }
   };
   let qrLibraryPromise;
