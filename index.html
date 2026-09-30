@@ -105,50 +105,10 @@
         >
         <input id="import-file" type="file" accept="application/json,.json" />
       </label>
-      <button class="menu-action" id="export-csv" type="button">
-        ⇩
-        <span><b>Export to Excel</b><small>Download a CSV spreadsheet</small></span>
-      </button>
-      <label class="menu-action file-action"
-        >⇧
-        <span
-          ><b>Import from Excel</b
-          ><small>Load sessions from a CSV spreadsheet</small></span
-        ><input id="import-csv-file" type="file" accept="text/csv,.csv" /></label
-      ><button class="menu-action" id="email-data">
-        ✉
-        <span
-          ><b>Share by email</b><small>Prepare a summary in your email app</small></span
-        >
-      </button>
       <p class="dialog-note">
-        Importing a backup replaces your saved sessions. CSV import and export are
-        available below.
+        Importing a backup replaces your saved sessions.
       </p>
       <p id="dialog-status" class="status" role="status"></p>
-      <section class="json-preview" aria-labelledby="json-preview-label">
-        <div class="json-preview-head">
-          <label id="json-preview-label" for="json-preview">JSON backup</label>
-          <span id="json-character-count" class="muted"></span>
-        </div>
-        <textarea
-          id="json-preview"
-          readonly
-          spellcheck="false"
-          aria-label="JSON backup contents"
-        ></textarea>
-        <button class="menu-action copy-action" id="show-qr" type="button">
-          ▦
-          <span
-            ><b>Show QR code</b
-            ><small id="qr-button-note">For small backups only</small></span
-          >
-        </button>
-        <div id="qr-result" class="qr-result" hidden>
-          <p id="qr-status" class="muted" role="status"></p>
-          <div id="qr-code" aria-label="QR code containing the JSON backup"></div>
-        </div>
-      </section>
     </dialog>
     <dialog id="scan-dialog" class="data-dialog scan-dialog">
       <div class="dialog-head">

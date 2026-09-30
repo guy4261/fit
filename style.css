@@ -1583,71 +1583,9 @@ dialog::backdrop {
   color: var(--green);
   min-height: 16px;
 }
-.json-preview {
-  border-top: 1px solid var(--line);
-  margin-top: 12px;
-  padding-top: 16px;
-}
-.json-preview-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.json-preview-head label {
-  font-size: 13px;
-  font-weight: 700;
-}
-.json-preview-head .muted {
-  font-size: 11px;
-  white-space: nowrap;
-}
-#json-preview {
-  display: block;
-  width: 100%;
-  min-height: 150px;
-  max-height: 230px;
-  resize: vertical;
-  overflow: auto;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f3f3ec;
-  color: var(--ink);
-  font:
-    11px/1.5 ui-monospace,
-    SFMono-Regular,
-    Consolas,
-    monospace;
-  white-space: pre;
-}
-.menu-action.copy-action {
-  cursor: pointer;
-}
 .menu-action:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
-.qr-result {
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #f3f3ec;
-}
-.qr-result[hidden] {
-  display: none;
-}
-.qr-result p {
-  margin: 0 0 12px;
-  font-size: 12px;
-}
-#qr-code {
-  display: grid;
-  place-items: center;
-  min-height: 240px;
-  overflow: auto;
 }
 .session-qr-code {
   display: grid;
@@ -1662,12 +1600,6 @@ dialog::backdrop {
 }
 .session-qr-code img,
 .session-qr-code canvas {
-  max-width: 100%;
-  height: auto;
-  image-rendering: pixelated;
-}
-#qr-code img,
-#qr-code canvas {
   max-width: 100%;
   height: auto;
   image-rendering: pixelated;
