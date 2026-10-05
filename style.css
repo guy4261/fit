@@ -1683,8 +1683,29 @@ dialog::backdrop {
 }
 .photo-crop {
   position: relative;
-  margin: 24px 20px;
-  touch-action: pan-y;
+  width: 100%;
+}
+.photo-crop-viewport {
+  overflow: auto;
+  max-height: min(55vh, 420px);
+  padding: 22px;
+  margin: 16px 0;
+  background: #edf0eb;
+  border-radius: 12px;
+}
+.photo-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.photo-zoom-controls button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.photo-zoom-controls output {
+  min-width: 48px;
+  text-align: center;
 }
 .photo-crop > img {
   display: block;
@@ -1693,10 +1714,20 @@ dialog::backdrop {
 }
 .photo-crop-selection {
   position: absolute;
-  border: 2px solid #fff;
-  outline: 1px solid var(--green);
-  background: rgb(255 255 255 / 10%);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   pointer-events: none;
+}
+.photo-crop-selection polygon {
+  fill: rgb(255 255 255 / 15%);
+  stroke: #fff;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: all;
+  touch-action: none;
+  cursor: move;
 }
 .photo-crop-corner {
   position: absolute;
