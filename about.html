@@ -16,6 +16,7 @@
     <link rel="icon" href="favicon.png" type="image/png" sizes="256x256" />
     <link rel="apple-touch-icon" href="favicon.png" />
     <link rel="stylesheet" href="style.css" />
+    <script src="update-app.js" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -23,16 +24,28 @@
         ><img class="brand-mark" src="favicon.png" alt="" /> fit24</a
       >
       <nav class="topbar-actions" aria-label="App links">
+        <button
+          class="icon-button update-button"
+          id="refresh-app"
+          type="button"
+          aria-label="Check for updates"
+          title="Check for updates"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 10a8 8 0 1 0-1.5 7M20 4v6h-6" />
+          </svg>
+        </button>
         <a
           class="icon-button history-link"
           href="index.html#home"
           aria-label="Training history"
           title="Training history"
           ><svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 3.5h12a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
-            <path d="M9 3.5v17M12 8h4m-4 4h4m-4 4h4" />
-          </svg></a
-        >
+            <path
+              d="M6 3.5h12a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"
+            />
+            <path d="M9 3.5v17M12 8h4m-4 4h4m-4 4h4" /></svg
+        ></a>
         <a
           class="icon-button achievements-link"
           href="index.html#achievements"
@@ -62,6 +75,7 @@
         </button>
       </nav>
     </header>
+    <p id="update-status" class="update-status" role="status" hidden></p>
     <main class="app-shell about-content">
       <div class="eyebrow">ABOUT</div>
       <h1>About</h1>
@@ -84,8 +98,8 @@
           <img class="github-icon" src="icons/github.svg" alt="" />
           GitHub
         </a>
-        or ask me for changes
-        (if you don't know me in real life - too bad <code>:)</code>).
+        or ask me for changes (if you don't know me in real life - too bad
+        <code>:)</code>).
       </p>
       <section class="about-qr" aria-labelledby="about-qr-title">
         <h2 id="about-qr-title">Share fit24</h2>

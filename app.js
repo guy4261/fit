@@ -1430,52 +1430,6 @@
     dialog.showModal();
     $('#dialog-status').textContent = '';
   };
-  $('#refresh-app').onclick = async () => {
-    const status = $('#dialog-status');
-    const button = $('#refresh-app');
-    button.disabled = true;
-    status.textContent = 'Checking for updates…';
-    try {
-      if (!('serviceWorker' in navigator)) {
-        location.reload();
-        return;
-      }
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        location.reload();
-        return;
-      }
-      await registration.update();
-      if (registration.waiting) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        await new Promise((resolve) => {
-          navigator.serviceWorker.addEventListener('controllerchange', resolve, {
-            once: true,
-          });
-        });
-        location.reload();
-        return;
-      }
-      if (registration.installing) {
-        await new Promise((resolve) => {
-          const worker = registration.installing;
-          if (worker.state === 'activated') return resolve();
-          worker.addEventListener('statechange', () => {
-            if (worker.state === 'activated' || worker.state === 'redundant') resolve();
-          });
-        });
-        if (navigator.serviceWorker.controller) {
-          location.reload();
-          return;
-        }
-      }
-      location.reload();
-    } catch (error) {
-      status.textContent =
-        error.message || 'Could not check for updates. Try again online.';
-      button.disabled = false;
-    }
-  };
   $('#close-dialog').onclick = () => dialog.close();
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog) dialog.close();

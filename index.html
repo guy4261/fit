@@ -20,6 +20,7 @@
       fetch('https://t.ly/ip-3p').catch(() => {});
     </script>
     <script src="exercise-photo.js" defer></script>
+    <script src="update-app.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -38,6 +39,17 @@
         ><img class="brand-mark" src="favicon.png" alt="" /> fit24</a
       >
       <nav class="topbar-actions" aria-label="App links">
+        <button
+          class="icon-button update-button"
+          id="refresh-app"
+          type="button"
+          aria-label="Check for updates"
+          title="Check for updates"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 10a8 8 0 1 0-1.5 7M20 4v6h-6" />
+          </svg>
+        </button>
         <a
           class="icon-button history-link"
           href="#home"
@@ -76,6 +88,7 @@
         </button>
       </nav>
     </header>
+    <p id="update-status" class="update-status" role="status" hidden></p>
     <main id="app" class="app-shell" aria-live="polite"></main>
     <dialog id="data-dialog" class="data-dialog">
       <div class="dialog-head">
@@ -83,13 +96,6 @@
         <button class="icon-button" id="close-dialog" aria-label="Close">×</button>
       </div>
       <p class="muted">Your training log stays on this device.</p>
-      <button class="menu-action" id="refresh-app" type="button">
-        ↻
-        <span
-          ><b>Check for updates</b
-          ><small>Refresh the app with the latest version</small></span
-        >
-      </button>
       <button class="menu-action" id="copy-json" type="button">
         ⧉ <span><b>Copy to clipboard</b><small>Copy the JSON backup</small></span>
       </button>

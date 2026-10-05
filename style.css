@@ -143,6 +143,46 @@ button {
 .icon-button:hover {
   background: #eae9e1;
 }
+.update-button {
+  color: #000;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.update-button:hover {
+  background: #eee;
+}
+.update-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.update-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.update-status {
+  max-width: 716px;
+  margin: 8px auto;
+  padding: 0 22px;
+  color: #000;
+}
+@media (max-width: 380px) {
+  .topbar {
+    padding: 0 12px;
+  }
+  .topbar-actions {
+    gap: 0;
+  }
+  .topbar .icon-button {
+    min-width: 38px;
+  }
+}
 .share-icon {
   width: 21px;
   height: 21px;
