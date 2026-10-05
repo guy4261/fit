@@ -44,6 +44,10 @@ const assert = require('node:assert/strict');
     await page
       .locator('[data-photos-input]')
       .setInputFiles({ name: 'real-list.png', mimeType: 'image/png', buffer: photo });
+    await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
+    assert.equal(await page.locator('#photo-exercise-names').inputValue(), '');
+    assert.equal(await page.locator('[data-corner]').count(), 4);
+    await page.locator('[data-ocr]').click();
     await page.waitForFunction(
       () =>
         document.querySelector('[data-add]').disabled === false ||
@@ -57,6 +61,36 @@ const assert = require('node:assert/strict');
       await page.locator('[data-status]').textContent(),
     );
     console.log('PASS: real Tesseract OCR of exercise image');
+    await page.locator('#photo-exercise-names').fill('');
+    await page.locator('[data-corner="br"]').focus();
+    for (let step = 0; step < 10; step++) await page.keyboard.press('Shift+ArrowUp');
+    await page.locator('[data-ocr]').click();
+    await page.waitForFunction(
+      () => !document.querySelector('[data-ocr]').disabled,
+      null,
+      { timeout: 120000 },
+    );
+    assert.equal(
+      await page.locator('#photo-exercise-names').inputValue(),
+      'Bench Press',
+      'Real OCR should read only the upper crop',
+    );
+    await page.locator('[data-corner="br"]').focus();
+    for (let step = 0; step < 10; step++) await page.keyboard.press('Shift+ArrowDown');
+    await page.locator('[data-corner="tl"]').focus();
+    for (let step = 0; step < 10; step++) await page.keyboard.press('Shift+ArrowDown');
+    await page.locator('[data-ocr]').click();
+    await page.waitForFunction(
+      () => !document.querySelector('[data-ocr]').disabled,
+      null,
+      { timeout: 120000 },
+    );
+    assert.equal(
+      await page.locator('#photo-exercise-names').inputValue(),
+      'Bench Press\nSquat',
+      'Second real crop should append only the lower line',
+    );
+    console.log('PASS: real OCR of two separate rectangular sections');
     for (let sample = 1; sample <= 6; sample++) {
       await page.locator('.photo-samples summary').click();
       assert.equal(await page.locator('[data-sample]').count(), 6);
@@ -67,14 +101,21 @@ const assert = require('node:assert/strict');
         'Sample gallery must fit a phone viewport',
       );
       await page.locator(`[data-sample="${sample}"]`).click();
+      await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
+      const previousText = await page.locator('#photo-exercise-names').inputValue();
+      await page.locator('[data-ocr]').click();
       await page.waitForFunction(
         () => document.querySelector('[data-camera]').disabled === false,
         null,
         { timeout: 120000 },
       );
       const status = await page.locator('[data-status]').textContent();
-      assert.ok(status.startsWith('Found '), `Photo ${sample}: ${status}`);
+      assert.ok(status.startsWith('Appended '), `Photo ${sample}: ${status}`);
       const detected = await page.locator('#photo-exercise-names').inputValue();
+      assert.ok(
+        detected.startsWith(previousText + '\n'),
+        'OCR should append and preserve previous scans',
+      );
       assert.ok(!/\p{N}/u.test(detected));
       console.log(
         `PASS: sample photo ${sample}: ${detected.split('\n').length} detected lines`,
@@ -85,9 +126,12 @@ const assert = require('node:assert/strict');
     await page.evaluate(() => {
       window.Tesseract = {
         createWorker: async () => ({
-          recognize: async () => ({
-            data: { text: '1. Bench Press 12\n2. Squat 20\n123\nBench Press 8' },
-          }),
+          recognize: async (canvas) => {
+            window.testCrop = { width: canvas.width, height: canvas.height };
+            return {
+              data: { text: '1. BENCH PRESS 12\n2. sQUAT 20\n123\nBench Press 8' },
+            };
+          },
           terminate: async () => {},
         }),
       };
@@ -95,17 +139,51 @@ const assert = require('node:assert/strict');
     await page.locator('[data-photos-input]').setInputFiles({
       name: 'list.png',
       mimeType: 'image/png',
-      buffer: Buffer.from('fixture'),
+      buffer: photo,
     });
+    await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
+    const handle = page.locator('[data-corner="br"]');
+    await handle.scrollIntoViewIfNeeded();
+    const box = await page.locator('.photo-crop').boundingBox();
+    const start = await handle.boundingBox();
+    await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.locator('#photo-exercise-names').fill('hIP THRUST 20');
+    await page.locator('[data-ocr]').click();
     await page.waitForFunction(
       () => document.querySelector('[data-add]').disabled === false,
     );
     assert.equal(
       await page.locator('textarea#photo-exercise-names').inputValue(),
-      'Bench Press\nSquat',
+      'hIP THRUST 20\nBench Press\nSquat',
+    );
+    const sizes = await page.evaluate(() => ({
+      crop: window.testCrop,
+      width: document.querySelector('[data-image]').naturalWidth,
+      height: document.querySelector('[data-image]').naturalHeight,
+    }));
+    assert.ok(Math.abs(sizes.crop.width - sizes.width / 2) < 3);
+    assert.ok(Math.abs(sizes.crop.height - sizes.height / 2) < 3);
+    assert.equal(
+      await page.locator('.exercise-card').count(),
+      0,
+      'OCR must not create exercises',
+    );
+    await page.locator('[data-ocr]').click();
+    await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
+    assert.equal(
+      await page.locator('#photo-exercise-names').inputValue(),
+      'hIP THRUST 20\nBench Press\nSquat\nBench Press\nSquat',
     );
     await page.locator('[data-add]').click();
-    assert.equal(await page.locator('.exercise-card').count(), 2);
+    assert.equal(await page.locator('.exercise-card').count(), 3);
+    assert.deepEqual(await page.locator('.exercise-card h3').allTextContents(), [
+      'Hip Thrust',
+      'Bench Press',
+      'Squat',
+    ]);
     const stored = await page.evaluate(() =>
       JSON.parse(localStorage.getItem('form-training-log-v1')),
     );
@@ -119,8 +197,10 @@ const assert = require('node:assert/strict');
     await page.locator('[data-camera-input]').setInputFiles({
       name: 'bad.png',
       mimeType: 'image/png',
-      buffer: Buffer.from('bad'),
+      buffer: photo,
     });
+    await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
+    await page.locator('[data-ocr]').click();
     await page.waitForFunction(() =>
       document.querySelector('[data-status]').textContent.includes('test failure'),
     );

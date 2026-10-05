@@ -1681,6 +1681,54 @@ dialog::backdrop {
 .photo-samples {
   margin: 16px 0;
 }
+.photo-crop {
+  position: relative;
+  margin: 24px 20px;
+  touch-action: pan-y;
+}
+.photo-crop > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.photo-crop-selection {
+  position: absolute;
+  border: 2px solid #fff;
+  outline: 1px solid var(--green);
+  background: rgb(255 255 255 / 10%);
+  pointer-events: none;
+}
+.photo-crop-corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: var(--green);
+  transform: translate(-50%, -50%);
+  touch-action: none;
+  pointer-events: auto;
+}
+.photo-crop-corner[data-corner='tl'] {
+  left: 0;
+  top: 0;
+}
+.photo-crop-corner[data-corner='tr'] {
+  left: 100%;
+  top: 0;
+}
+.photo-crop-corner[data-corner='br'] {
+  left: 100%;
+  top: 100%;
+}
+.photo-crop-corner[data-corner='bl'] {
+  left: 0;
+  top: 100%;
+}
+.photo-ocr {
+  width: 100%;
+  margin-bottom: 16px;
+}
 .photo-samples summary {
   cursor: pointer;
   padding: 8px 0;

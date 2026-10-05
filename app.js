@@ -628,7 +628,7 @@
     $('#import-exercise-photo')?.addEventListener('click', () => {
       ExercisePhoto.open((names) => {
         for (const detectedName of names) {
-          const name = preferredExerciseName(detectedName);
+          const name = detectedName;
           active.exercises.push({ name, sets: 1, reps: 1, weight: { type: 'body' } });
           if (
             !data.names.some(
