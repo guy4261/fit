@@ -32,7 +32,9 @@ const assert = require('node:assert/strict');
     });
     await page.goto('http://fit.test/');
     await page.locator('#start').click();
-    await page.locator('#add').click();
+    const qrBox = await page.locator('#scan-exercises').boundingBox();
+    const photoBox = await page.locator('#import-exercise-photo').boundingBox();
+    assert.equal(qrBox.y, photoBox.y, 'QR and photo buttons should sit side by side');
     await page.locator('#import-exercise-photo').click();
     assert.equal(
       await page.locator('[data-camera-input]').getAttribute('capture'),
@@ -108,7 +110,6 @@ const assert = require('node:assert/strict');
       JSON.parse(localStorage.getItem('form-training-log-v1')),
     );
     assert.ok(JSON.stringify(stored).includes('Bench Press'));
-    await page.locator('#add').click();
     await page.locator('#import-exercise-photo').click();
     await page.evaluate(() => {
       window.Tesseract.createWorker = async () => {
@@ -127,6 +128,8 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('[data-camera]').isEnabled(), true);
     await page.locator('[data-close]').click();
     assert.equal(await page.locator('#import-exercise-photo').count(), 1);
+    await page.locator('#add').click();
+    assert.equal(await page.locator('#import-exercise-photo').count(), 0);
     console.log(
       'PASS: photo source controls, OCR cleanup, duplicate removal, import, persistence, failure recovery and cancellation',
     );
