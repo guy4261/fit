@@ -1,4 +1,4 @@
-const CACHE = 'fit24-v33';
+const CACHE = 'fit24-v35';
 const FILES = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const FILES = [
   './icons/share.svg',
   './style.css',
   './app.js',
+  './exercise-photo.js',
   './images/body.png',
   './images/plates.png',
   './images/barbell.png',
@@ -55,7 +56,9 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         if (response.ok) {
           const responseCopy = response.clone();
-          event.waitUntil(caches.open(CACHE).then((cache) => cache.put(event.request, responseCopy)));
+          event.waitUntil(
+            caches.open(CACHE).then((cache) => cache.put(event.request, responseCopy)),
+          );
         }
         return response;
       })

@@ -1664,7 +1664,38 @@ dialog::backdrop {
     width: 26px;
     height: 26px;
   }
-  .load-controls-row { gap: 6px; }
-  .rep-stamp-control { flex-basis: 54px; }
-  .rep-wheel-field { width: 54px; }
+  .load-controls-row {
+    gap: 6px;
+  }
+  .rep-stamp-control {
+    flex-basis: 54px;
+  }
+  .rep-wheel-field {
+    width: 54px;
+  }
+}
+.photo-samples {
+  margin: 16px 0;
+}
+.photo-samples summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.photo-sample-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.photo-sample {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  min-width: 0;
+}
+.photo-sample img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
 }

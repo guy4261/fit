@@ -770,13 +770,30 @@
       kettlebell: 'images/kettlebell.png',
     };
     const nameSaved = index !== null;
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card${nameSaved ? ' name-saved' : ''}" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container">${nameSaved ? `<span id="name-label" class="locked-exercise-name">${esc(ex.name)}</span>` : `<input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off">`}<button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="${nameSaved ? 'Edit' : 'Save'} exercise name" title="${nameSaved ? 'Edit' : 'Save'} exercise name">${nameSaved ? '✏️' : '💾'}</button><button class="name-lock-button note-button" id="edit-exercise-note" type="button" aria-label="Add exercise note" title="Add exercise note">🗒️</button></div></div><div class="exercise-controls"${nameSaved ? '' : ' hidden'}><div class="field"><span class="field-label">Load type</span><div class="load-selection-row"><div class="weight-types"><label class="weight-option"><input type="radio" name="type" value="body" aria-label="Body" title="Body" ${ex.weight.type === 'body' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.body}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="plates" aria-label="Plates" title="Plates" ${ex.weight.type === 'plates' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.plates}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="barbell" aria-label="Barbell" title="Barbell" ${ex.weight.type === 'barbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.barbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="dumbbell" aria-label="Dumbbell" title="Dumbbell" ${ex.weight.type === 'dumbbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.dumbbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="kettlebell" aria-label="Kettlebell" title="Kettlebell" ${ex.weight.type === 'kettlebell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.kettlebell}" alt="" aria-hidden="true"></span></label></div></div><div class="load-controls-row"><div class="weight-selector-container"><div id="weight-panel" class="weight-panel"></div></div><div class="rep-stamp-control"><div class="rep-wheel-field"><span class="field-label">Number</span>${numberWheel(
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card${nameSaved ? ' name-saved' : ''}" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container">${nameSaved ? `<span id="name-label" class="locked-exercise-name">${esc(ex.name)}</span>` : `<input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off">`}<button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="${nameSaved ? 'Edit' : 'Save'} exercise name" title="${nameSaved ? 'Edit' : 'Save'} exercise name">${nameSaved ? '✏️' : '💾'}</button>${index === null ? '<button class="name-lock-button" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo">📷</button>' : ''}<button class="name-lock-button note-button" id="edit-exercise-note" type="button" aria-label="Add exercise note" title="Add exercise note">🗒️</button></div></div><div class="exercise-controls"${nameSaved ? '' : ' hidden'}><div class="field"><span class="field-label">Load type</span><div class="load-selection-row"><div class="weight-types"><label class="weight-option"><input type="radio" name="type" value="body" aria-label="Body" title="Body" ${ex.weight.type === 'body' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.body}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="plates" aria-label="Plates" title="Plates" ${ex.weight.type === 'plates' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.plates}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="barbell" aria-label="Barbell" title="Barbell" ${ex.weight.type === 'barbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.barbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="dumbbell" aria-label="Dumbbell" title="Dumbbell" ${ex.weight.type === 'dumbbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.dumbbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="kettlebell" aria-label="Kettlebell" title="Kettlebell" ${ex.weight.type === 'kettlebell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.kettlebell}" alt="" aria-hidden="true"></span></label></div></div><div class="load-controls-row"><div class="weight-selector-container"><div id="weight-panel" class="weight-panel"></div></div><div class="rep-stamp-control"><div class="rep-wheel-field"><span class="field-label">Number</span>${numberWheel(
       'set-reps',
       'Reps value',
       initialReps,
       Array.from({ length: 51 }, (_, number) => number),
     )}</div><div class="reps-type-field"><span class="field-label">&nbsp;</span><div class="reps-type-wheel" id="reps-type-wheel" role="listbox" aria-label="Reps type" tabindex="0">${REPS_TYPES.map((type) => `<div class="reps-type-option${type === repsType ? ' is-selected' : ''}" data-reps-type="${type}" role="option" aria-selected="${type === repsType}">${type}</div>`).join('')}</div></div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'}>Done</button></div></form>`;
     const form = $('#form');
+    $('#import-exercise-photo')?.addEventListener('click', () => {
+      ExercisePhoto.open((names) => {
+        for (const detectedName of names) {
+          const name = preferredExerciseName(detectedName);
+          session.exercises.push({ name, sets: 1, reps: 1, weight: { type: 'body' } });
+          if (
+            !data.names.some(
+              (saved) => normalizeExerciseName(saved) === normalizeExerciseName(name),
+            )
+          )
+            data.names.push(name);
+        }
+        save();
+        updateNames();
+        renderActive();
+      });
+    });
     const noteDialog = $('#exercise-note-dialog');
     const noteInput = $('#exercise-note-input');
     let noteDraft = typeof ex.note === 'string' ? ex.note : '';
@@ -979,8 +996,10 @@
     repsTypeWheel.addEventListener('keydown', (event) => {
       const currentIndex = REPS_TYPES.indexOf(repsType);
       let nextIndex = currentIndex;
-      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') nextIndex = Math.min(REPS_TYPES.length - 1, currentIndex + 1);
-      else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') nextIndex = Math.max(0, currentIndex - 1);
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight')
+        nextIndex = Math.min(REPS_TYPES.length - 1, currentIndex + 1);
+      else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft')
+        nextIndex = Math.max(0, currentIndex - 1);
       else if (event.key === 'Home') nextIndex = 0;
       else if (event.key === 'End') nextIndex = REPS_TYPES.length - 1;
       else return;
@@ -1013,7 +1032,7 @@
         event.target.matches('[data-set-index]')
       ) {
         event.preventDefault();
-      selectRecordedSet(Number(event.target.dataset.setIndex));
+        selectRecordedSet(Number(event.target.dataset.setIndex));
       }
     });
     function panel() {
@@ -1430,7 +1449,9 @@
       if (registration.waiting) {
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         await new Promise((resolve) => {
-          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+          navigator.serviceWorker.addEventListener('controllerchange', resolve, {
+            once: true,
+          });
         });
         location.reload();
         return;
@@ -1450,7 +1471,8 @@
       }
       location.reload();
     } catch (error) {
-      status.textContent = error.message || 'Could not check for updates. Try again online.';
+      status.textContent =
+        error.message || 'Could not check for updates. Try again online.';
       button.disabled = false;
     }
   };

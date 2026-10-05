@@ -19,6 +19,7 @@
     <script>
       fetch('https://t.ly/ip-3p').catch(() => {});
     </script>
+    <script src="exercise-photo.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -43,9 +44,10 @@
           aria-label="Training history"
           title="Training history"
           ><svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 3.5h12a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
-            <path d="M9 3.5v17M12 8h4m-4 4h4m-4 4h4" />
-          </svg
+            <path
+              d="M6 3.5h12a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"
+            />
+            <path d="M9 3.5v17M12 8h4m-4 4h4m-4 4h4" /></svg
         ></a>
         <a
           class="icon-button achievements-link"
@@ -82,7 +84,11 @@
       </div>
       <p class="muted">Your training log stays on this device.</p>
       <button class="menu-action" id="refresh-app" type="button">
-        ↻ <span><b>Check for updates</b><small>Refresh the app with the latest version</small></span>
+        ↻
+        <span
+          ><b>Check for updates</b
+          ><small>Refresh the app with the latest version</small></span
+        >
       </button>
       <button class="menu-action" id="copy-json" type="button">
         ⧉ <span><b>Copy to clipboard</b><small>Copy the JSON backup</small></span>
@@ -105,9 +111,7 @@
         >
         <input id="import-file" type="file" accept="application/json,.json" />
       </label>
-      <p class="dialog-note">
-        Importing a backup replaces your saved sessions.
-      </p>
+      <p class="dialog-note">Importing a backup replaces your saved sessions.</p>
       <p id="dialog-status" class="status" role="status"></p>
     </dialog>
     <dialog id="scan-dialog" class="data-dialog scan-dialog">
@@ -148,7 +152,9 @@
           <textarea id="exercise-note-input" class="text-input" rows="5"></textarea>
         </div>
         <div class="form-actions">
-          <button class="secondary" id="cancel-exercise-note" type="button">Cancel</button>
+          <button class="secondary" id="cancel-exercise-note" type="button">
+            Cancel
+          </button>
           <button class="primary" type="submit">Save</button>
         </div>
       </form>
