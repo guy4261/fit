@@ -2,3 +2,5 @@ node_modules/
 deliverables/
 .codex-build/
 .codex-finalizer/
+tmp/
+tests/recordings/
