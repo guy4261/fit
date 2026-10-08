@@ -30,6 +30,12 @@ const assert = require('node:assert/strict');
                 : 'application/octet-stream',
       });
     });
+    const readNames = async () =>
+      (await page.locator('[data-name]').allTextContents()).join('\n');
+    const clearNames = async () => {
+      while (await page.locator('.photo-name-delete').count())
+        await page.locator('.photo-name-delete').first().click();
+    };
     await page.goto('http://fit.test/');
     await page.locator('#start').click();
     const qrBox = await page.locator('#scan-exercises').boundingBox();
@@ -45,7 +51,7 @@ const assert = require('node:assert/strict');
       .locator('[data-photos-input]')
       .setInputFiles({ name: 'real-list.png', mimeType: 'image/png', buffer: photo });
     await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
-    assert.equal(await page.locator('#photo-exercise-names').inputValue(), '');
+    assert.equal(await readNames(), '');
     assert.equal(await page.locator('[data-corner]').count(), 4);
     await page.locator('[data-ocr]').click();
     await page.waitForFunction(
@@ -56,12 +62,13 @@ const assert = require('node:assert/strict');
       { timeout: 120000 },
     );
     assert.equal(
-      await page.locator('textarea#photo-exercise-names').inputValue(),
+      await readNames(),
       'Bench Press\nSquat',
       await page.locator('[data-status]').textContent(),
     );
     console.log('PASS: real Tesseract OCR of exercise image');
-    await page.locator('#photo-exercise-names').fill('');
+    await clearNames();
+    assert.equal(await page.locator('[data-add]').isDisabled(), true);
     await page.locator('[data-corner="br"]').focus();
     for (let step = 0; step < 10; step++) await page.keyboard.press('Shift+ArrowUp');
     await page.locator('[data-corner="bl"]').focus();
@@ -73,7 +80,7 @@ const assert = require('node:assert/strict');
       { timeout: 120000 },
     );
     assert.equal(
-      await page.locator('#photo-exercise-names').inputValue(),
+      await readNames(),
       'Bench Press',
       'Real OCR should read only the upper crop',
     );
@@ -92,7 +99,7 @@ const assert = require('node:assert/strict');
       { timeout: 120000 },
     );
     assert.equal(
-      await page.locator('#photo-exercise-names').inputValue(),
+      await readNames(),
       'Bench Press\nSquat',
       'Second real crop should append only the lower line',
     );
@@ -187,7 +194,7 @@ const assert = require('node:assert/strict');
       );
       await page.locator(`[data-sample="${sample}"]`).click();
       await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
-      const previousText = await page.locator('#photo-exercise-names').inputValue();
+      const previousText = await readNames();
       await page.locator('[data-ocr]').click();
       await page.waitForFunction(
         () => document.querySelector('[data-camera]').disabled === false,
@@ -196,7 +203,7 @@ const assert = require('node:assert/strict');
       );
       const status = await page.locator('[data-status]').textContent();
       assert.ok(status.startsWith('Appended '), `Photo ${sample}: ${status}`);
-      const detected = await page.locator('#photo-exercise-names').inputValue();
+      const detected = await readNames();
       assert.ok(
         detected.startsWith(previousText + '\n'),
         'OCR should append and preserve previous scans',
@@ -260,6 +267,50 @@ const assert = require('node:assert/strict');
     await page.locator('[data-zoom="reset"]').click();
     assert.equal(await page.locator('[data-zoom-level]').textContent(), '100%');
     assert.deepEqual(await readPoints(), points, 'Reset zoom must preserve crop');
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.locator('.photo-crop').scrollIntoViewIfNeeded();
+    const imageBox = await page.locator('.photo-crop').boundingBox();
+    await page.mouse.move(imageBox.x + imageBox.width / 2, imageBox.y + 40);
+    await page.mouse.wheel(0, -100);
+    await page.waitForFunction(
+      () => document.querySelector('[data-zoom-level]').value === '125%',
+    );
+    await page.mouse.wheel(0, -100);
+    await page.waitForFunction(
+      () => document.querySelector('[data-zoom-level]').value === '156%',
+    );
+    const viewportBox = await page.locator('.photo-crop-viewport').boundingBox();
+    const scrollPosition = () =>
+      page
+        .locator('.photo-crop-viewport')
+        .evaluate((el) => ({ x: el.scrollLeft, y: el.scrollTop }));
+    const beforePan = await scrollPosition();
+    await page.mouse.move(viewportBox.x + viewportBox.width / 2, viewportBox.y + 80);
+    await page.mouse.down();
+    await page.mouse.move(
+      viewportBox.x + viewportBox.width / 2 - 60,
+      viewportBox.y + 40,
+      { steps: 5 },
+    );
+    await page.mouse.up();
+    const afterPan = await scrollPosition();
+    assert.ok(
+      afterPan.x > beforePan.x + 40,
+      'Dragging a zoomed image should pan horizontally',
+    );
+    assert.deepEqual(
+      await readPoints(),
+      points,
+      'Panning must preserve crop coordinates',
+    );
+    await page.mouse.move(viewportBox.x + viewportBox.width / 2, viewportBox.y + 80);
+    await page.mouse.wheel(0, 100);
+    await page.waitForFunction(
+      () => document.querySelector('[data-zoom-level]').value === '125%',
+    );
+    await page.locator('[data-zoom="reset"]').click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    console.log('PASS: desktop wheel zoom and drag panning preserve crop');
     await page.locator('.photo-crop').scrollIntoViewIfNeeded();
     const view = await page.locator('.photo-crop').boundingBox();
     const center = points.reduce(
@@ -282,15 +333,23 @@ const assert = require('node:assert/strict');
       assert.ok(Math.abs(p[0] - points[i][0] - 0.1) < 0.01);
       assert.ok(Math.abs(p[1] - points[i][1] - 0.1) < 0.01);
     });
-    await page.locator('#photo-exercise-names').fill('hIP THRUST 20');
     await page.locator('[data-ocr]').click();
     await page.waitForFunction(
       () => document.querySelector('[data-add]').disabled === false,
     );
-    assert.equal(
-      await page.locator('textarea#photo-exercise-names').inputValue(),
-      'hIP THRUST 20\nBench Press\nSquat',
-    );
+    assert.equal(await readNames(), 'Bench Press\nSquat');
+    await page.locator('[data-name]').first().click();
+    await page.locator('#photo-exercise-names input').fill('hIP THRUST 20');
+    await page.locator('#photo-exercise-names input').press('Enter');
+    assert.equal(await readNames(), 'hIP THRUST 20\nSquat');
+    await page.locator('[data-name]').first().click();
+    await page.locator('#photo-exercise-names input').fill('Discard this');
+    await page.locator('#photo-exercise-names input').press('Escape');
+    assert.equal(await readNames(), 'hIP THRUST 20\nSquat');
+    await page.locator('[data-name]').nth(1).click();
+    await page.locator('#photo-exercise-names input').fill('Faulty text');
+    await page.locator('.photo-name-delete').nth(1).click();
+    assert.equal(await readNames(), 'hIP THRUST 20');
     const sizes = await page.evaluate(() => ({
       crop: window.testCrop,
       width: document.querySelector('[data-image]').naturalWidth,
@@ -317,10 +376,7 @@ const assert = require('node:assert/strict');
     );
     await page.locator('[data-ocr]').click();
     await page.waitForFunction(() => !document.querySelector('[data-ocr]').disabled);
-    assert.equal(
-      await page.locator('#photo-exercise-names').inputValue(),
-      'hIP THRUST 20\nBench Press\nSquat\nBench Press\nSquat',
-    );
+    assert.equal(await readNames(), 'hIP THRUST 20\nBench Press\nSquat');
     await page.locator('[data-add]').click();
     assert.equal(await page.locator('.exercise-card').count(), 3);
     assert.deepEqual(await page.locator('.exercise-card h3').allTextContents(), [

@@ -17,6 +17,7 @@
     <link rel="apple-touch-icon" href="favicon.png" />
     <link rel="stylesheet" href="style.css" />
     <script src="update-app.js" defer></script>
+    <script src="app.js" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -66,10 +67,10 @@
         >
         <button
           class="icon-button"
-          id="share-app"
+          id="menu-button"
           type="button"
-          aria-label="Share fit24"
-          title="Share fit24"
+          aria-label="Data and settings"
+          title="Data and settings"
         >
           <img class="share-icon" src="icons/share.svg" alt="" />
         </button>
@@ -114,19 +115,35 @@
         </a>
       </section>
     </main>
-    <script>
-      document.querySelector('#share-app').addEventListener('click', async () => {
-        const url = new URL('index.html#home', location.href).href;
-        if (navigator.share) {
-          try {
-            await navigator.share({ title: 'fit24 — Training log', url });
-          } catch (error) {
-            if (error.name !== 'AbortError') console.error(error);
-          }
-        } else {
-          await navigator.clipboard.writeText(url);
-        }
-      });
-    </script>
+    <dialog id="data-dialog" class="data-dialog">
+      <div class="dialog-head">
+        <h2>Your data</h2>
+        <button class="icon-button" id="close-dialog" aria-label="Close">×</button>
+      </div>
+      <p class="muted">Your training log stays on this device.</p>
+      <button class="menu-action" id="copy-json" type="button">
+        ⧉ <span><b>Copy to clipboard</b><small>Copy the JSON backup</small></span>
+      </button>
+      <button class="menu-action" id="paste-json" type="button">
+        ⇩
+        <span
+          ><b>Paste from clipboard</b
+          ><small>Replace saved sessions with valid backup data</small></span
+        >
+      </button>
+      <button class="menu-action" id="export-json" type="button">
+        ⇧ <span><b>Save to file</b><small>Save or share a JSON backup</small></span>
+      </button>
+      <label class="menu-action file-action">
+        ⇧
+        <span
+          ><b>Load from file</b
+          ><small>Replace saved sessions from a JSON backup</small></span
+        >
+        <input id="import-file" type="file" accept="application/json,.json" />
+      </label>
+      <p class="dialog-note">Importing a backup replaces your saved sessions.</p>
+      <p id="dialog-status" class="status" role="status"></p>
+    </dialog>
   </body>
 </html>

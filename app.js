@@ -394,10 +394,9 @@
               .toLowerCase() !== name.toLowerCase()
           )
             return [];
-          const sets =
-            Array.isArray(exercise.setEntries) && exercise.setEntries.length
-              ? exercise.setEntries
-              : [{ weight: exercise.weight || { type: 'body' }, reps: exercise.reps }];
+          const sets = Array.isArray(exercise.setEntries)
+            ? exercise.setEntries
+            : [{ weight: exercise.weight || { type: 'body' }, reps: exercise.reps }];
           return sets.map((set, setIndex) => ({
             session,
             exercise,
@@ -531,10 +530,9 @@
         if (!name) return;
         const key = name.toLocaleLowerCase();
         if (!exerciseMap.has(key)) exerciseMap.set(key, { name, entries: [] });
-        const setEntries =
-          Array.isArray(exercise.setEntries) && exercise.setEntries.length
-            ? exercise.setEntries
-            : [{ weight: exercise.weight || { type: 'body' }, reps: exercise.reps }];
+        const setEntries = Array.isArray(exercise.setEntries)
+          ? exercise.setEntries
+          : [{ weight: exercise.weight || { type: 'body' }, reps: exercise.reps }];
         setEntries.forEach((set) => {
           const weight = set.weight || exercise.weight || { type: 'body' };
           exerciseMap.get(key).entries.push({
@@ -607,7 +605,7 @@
   }
   function renderActive() {
     const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     validateActiveSessionTimes = bindSessionTimeInputs(active);
     bindSessionName(active, true);
     $('#back').onclick = () => {
@@ -630,6 +628,28 @@
         for (const detectedName of names) {
           const name = detectedName;
           active.exercises.push({ name, sets: 1, reps: 1, weight: { type: 'body' } });
+          if (
+            !data.names.some(
+              (saved) => normalizeExerciseName(saved) === normalizeExerciseName(name),
+            )
+          )
+            data.names.push(name);
+        }
+        save();
+        updateNames();
+        renderActive();
+      });
+    });
+    $('#scan-workout-screen')?.addEventListener('click', () => {
+      ExercisePhoto.openLive((names) => {
+        for (const name of names) {
+          active.exercises.push({
+            name,
+            sets: 0,
+            reps: 0,
+            setEntries: [],
+            weight: { type: 'body' },
+          });
           if (
             !data.names.some(
               (saved) => normalizeExerciseName(saved) === normalizeExerciseName(name),
@@ -1380,9 +1400,11 @@
           : error.message || 'Could not open the camera.';
     }
   }
-  $('#close-scan').onclick = () => scanDialog.close();
-  scanDialog.addEventListener('close', stopExerciseScanner);
-  scanDialog.addEventListener('cancel', stopExerciseScanner);
+  if (scanDialog) {
+    $('#close-scan').onclick = () => scanDialog.close();
+    scanDialog.addEventListener('close', stopExerciseScanner);
+    scanDialog.addEventListener('cancel', stopExerciseScanner);
+  }
   function renderSaved(id) {
     let s = data.sessions.find((x) => x.id === id);
     if (!s) {
@@ -1410,6 +1432,7 @@
     };
   }
   function route() {
+    if (!app) return;
     // A fresh visit should land on the training history. Keep explicit routes
     // intact, and normalize only an empty fragment to the history route.
     if (!location.hash) {
@@ -1472,7 +1495,7 @@
     ];
     save();
     $('#dialog-status').textContent = `Imported ${importedSessions.length} sessions.`;
-    renderHome();
+    if (app) renderHome();
   }
   $('#export-json').onclick = async () => {
     const filename = `fit24-training-${new Date().toISOString().slice(0, 10)}.json`;
@@ -1557,10 +1580,12 @@
     return qrLibraryPromise;
   }
   const sessionQrDialog = $('#session-qr-dialog');
-  $('#close-session-qr').onclick = () => sessionQrDialog.close();
-  sessionQrDialog.addEventListener('click', (event) => {
-    if (event.target === sessionQrDialog) sessionQrDialog.close();
-  });
+  if (sessionQrDialog) {
+    $('#close-session-qr').onclick = () => sessionQrDialog.close();
+    sessionQrDialog.addEventListener('click', (event) => {
+      if (event.target === sessionQrDialog) sessionQrDialog.close();
+    });
+  }
   async function showSessionQr(exercises) {
     const namesJson = JSON.stringify(exercises.map((exercise) => exercise.name));
     const target = $('#session-qr-code');
@@ -1620,6 +1645,7 @@
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   route();
   const splash = $('#splash-screen');
+  if (!splash) return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       splash.classList.add('is-hiding');

@@ -920,6 +920,18 @@ select:focus {
   background: var(--white);
   font-size: 21px;
 }
+.photo-exercise-names {
+  display: grid;
+  gap: 8px;
+}
+.photo-exercise-name {
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.photo-name-delete {
+  color: #842b28;
+}
 .note-button {
   font-size: 22px;
 }
@@ -1821,4 +1833,45 @@ dialog::backdrop {
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 6px;
+}
+
+@media (pointer: fine) {
+  .photo-crop-viewport.is-zoomed .photo-crop,
+  .photo-crop-viewport.is-zoomed polygon {
+    cursor: grab;
+  }
+  .photo-crop-viewport.is-panning .photo-crop,
+  .photo-crop-viewport.is-panning polygon {
+    cursor: grabbing;
+  }
+}
+
+.exercise-actions .live-scan-action {
+  grid-column: 1 / -1;
+}
+.live-scan-preview {
+  position: relative;
+  background: #111;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.live-scan-preview video {
+  display: block;
+  width: 100%;
+  max-height: 45dvh;
+  object-fit: contain;
+}
+.live-scan-guide {
+  position: absolute;
+  inset: 5%;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  pointer-events: none;
+}
+.live-scan-dialog [hidden] {
+  display: none;
+}
+.live-scan-dialog .exercise-name-row input {
+  min-width: 0;
+  flex: 1;
 }

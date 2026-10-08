@@ -1,0 +1,67 @@
+digraph name {
+
+edge [
+  dir=none
+  arrowhead=none
+  arrowtail=none
+]
+
+// session types: strength, 50-50, mix, functional, yoga, pilates, open_gym
+
+session [shape="record"
+  label="{Session|start_timestamp}"
+]
+
+exercise [shape="record" label="{Exercise|Name}"]
+
+assoc [shape="record" label="{Performance|note=?}"]
+session -> assoc -> exercise
+
+example_session [shape="Mrecord" label="October 1st, 2026, Evening, Strength"]
+example_exercise [shape="Mrecord" label="Sumo Squat"]
+
+session -> example_session [style="dotted" dir="none"]
+exercise -> example_exercise [style="dotted" dir="none"]
+
+/*
+The opposite term when an exercise is not done per side (using one limb at a time) is bilateral training.
+• Unilateral: Working one side or limb independently (such as a single-leg squat or lunge per leg).
+• Bilateral: Working both sides or limbs together at the same time (such as a standard barbell back squat or leg press).
+*/
+set [shape="record" label="{Set|PerSide:bool|weight_kg_nonzero:int}" style="dotted"]
+
+assoc -> set
+
+TimedSet [shape="record"
+  label="{TimedSet|duration_seconds:int}"
+]
+
+RepsSet [shape="record"
+  label="{RepsSet|number:int}"
+]
+
+RepsSet -> set
+TimedSet -> set
+
+example_repsset [shape="Mrecord"
+label="{RepsSet|number:5|PerSide:false|weight:10}"
+]
+
+example_timedset [shape="Mrecord"
+label="{TimedSet|duration:30|PerSide:true|weight:0}"
+]
+
+RepsSet -> example_repsset
+TimedSet -> example_timedset
+
+subgraph cluster_examples {
+	example_repsset
+	example_session
+	example_timedset
+	example_exercise
+}
+
+highscore [shape="ellipse"]
+RM1 [shape="ellipse" label="1RM"]
+
+}

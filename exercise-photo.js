@@ -112,6 +112,219 @@
   window.ExercisePhoto = {
     namesFromText,
     perspectiveCrop,
+    openLive(onImport) {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'data-dialog live-scan-dialog';
+      dialog.innerHTML = `<div class="dialog-head"><h2>Scan workout screen</h2></div>
+        <p>Point at the board or move closer to one panel. Keep the text inside the frame, avoid reflections, and hold still when you tap Read exercises.</p>
+        <div data-live-preview class="live-scan-preview"><video autoplay muted playsinline aria-label="Live rear camera preview"></video><div class="live-scan-guide" aria-hidden="true"></div></div>
+        <p data-live-status role="status" aria-live="polite">Opening camera… Allow camera access when asked.</p>
+        <div class="form-actions"><button class="primary" data-read disabled>Read exercises</button><button class="secondary" data-retry hidden>Retry camera</button><button class="secondary" data-review disabled>Review (0)</button></div>
+        <div data-live-review hidden><p>Edit names or remove unwanted headings. No sets will be added.</p><div data-live-names class="photo-exercise-names"></div><div class="form-actions"><button class="secondary" data-resume>Scan more</button><button class="primary" data-import disabled>Add exercises</button></div></div>
+        <p>The first read needs internet to load English text recognition. Images are processed in your browser.</p>
+        <div class="form-actions"><button class="secondary" data-cancel>Cancel</button></div>`;
+      document.body.append(dialog);
+      const query = (selector) => dialog.querySelector(selector);
+      const video = query('video');
+      const status = query('[data-live-status]');
+      const read = query('[data-read]');
+      const review = query('[data-review]');
+      const retry = query('[data-retry]');
+      const list = query('[data-live-names]');
+      let stream,
+        worker,
+        workerPromise,
+        closed = false,
+        busy = false,
+        reviewing = false;
+      const names = () =>
+        namesFromText(
+          [...list.querySelectorAll('input')].map((input) => input.value).join('\n'),
+        );
+      const update = () => {
+        const count = names().length;
+        read.disabled =
+          closed ||
+          busy ||
+          reviewing ||
+          !stream ||
+          !video.videoWidth ||
+          video.readyState < 2;
+        review.disabled = busy || !count;
+        review.textContent = `Review (${count})`;
+        query('[data-import]').disabled = busy || !count;
+      };
+      const stopCamera = () => {
+        if (stream) stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+        video.srcObject = null;
+      };
+      const cleanup = () => {
+        if (closed) return;
+        closed = true;
+        stopCamera();
+        if (worker) void worker.terminate().catch(() => {});
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('pagehide', onPageHide);
+        dialog.remove();
+      };
+      const onPageHide = () => dialog.close();
+      const onVisibility = () => {
+        if (document.hidden) {
+          stopCamera();
+          retry.hidden = false;
+          status.textContent = 'Camera paused. Tap Retry camera when you return.';
+          update();
+        }
+      };
+      const startCamera = async () => {
+        retry.hidden = true;
+        status.textContent = 'Opening camera… Allow camera access when asked.';
+        try {
+          if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)
+            throw new Error(
+              'Live scanning needs HTTPS or localhost. On iPhone, use an HTTPS address for the app on your computer. You can still use the Photo button.',
+            );
+          stopCamera();
+          const acquired = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+          });
+          if (closed || document.hidden) {
+            acquired.getTracks().forEach((track) => track.stop());
+            return;
+          }
+          stream = acquired;
+          video.srcObject = stream;
+          stream.getVideoTracks()[0].onended = () => {
+            stopCamera();
+            retry.hidden = false;
+            status.textContent = 'Camera stopped. Tap Retry camera.';
+            update();
+          };
+          await video.play();
+          if (closed) return;
+          status.textContent =
+            'Ready. Read the whole board first, then scan any missed sections.';
+          update();
+        } catch (error) {
+          if (closed) return;
+          stopCamera();
+          retry.hidden = false;
+          status.textContent =
+            error.name === 'NotAllowedError'
+              ? 'Camera access was denied. Allow it in Safari’s website settings and retry, or use Photo.'
+              : `Could not open camera. ${error.message}`;
+          update();
+        }
+      };
+      video.addEventListener('loadeddata', update);
+      const append = (name) => {
+        const row = document.createElement('div');
+        row.className = 'exercise-name-row';
+        const input = document.createElement('input');
+        input.className = 'text-input';
+        input.value = name;
+        input.maxLength = 60;
+        input.setAttribute('aria-label', 'Exercise name');
+        input.oninput = update;
+        const remove = document.createElement('button');
+        remove.className = 'name-lock-button photo-name-delete';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `Remove ${name}`);
+        remove.onclick = () => {
+          row.remove();
+          update();
+        };
+        row.append(input, remove);
+        list.append(row);
+      };
+      read.onclick = async () => {
+        if (read.disabled) return;
+        busy = true;
+        update();
+        status.textContent = 'Reading captured frame… You can point at the next section.';
+        // Capture before awaiting the OCR engine; never encode frames as data URLs.
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(2, Math.round(video.videoWidth * 0.9));
+        canvas.height = Math.max(2, Math.round(video.videoHeight * 0.9));
+        try {
+          canvas
+            .getContext('2d')
+            .drawImage(
+              video,
+              video.videoWidth * 0.05,
+              video.videoHeight * 0.05,
+              video.videoWidth * 0.9,
+              video.videoHeight * 0.9,
+              0,
+              0,
+              canvas.width,
+              canvas.height,
+            );
+          if (!workerPromise)
+            workerPromise = loadEngine().then((engine) => engine.createWorker('eng'));
+          worker = await workerPromise;
+          if (closed) {
+            await worker.terminate();
+            return;
+          }
+          const result = await worker.recognize(canvas);
+          if (closed) return;
+          const known = new Set(names().map((name) => name.toLowerCase()));
+          let added = 0;
+          for (const name of namesFromText(result.data.text)) {
+            if (/^(?:[A-F] )?(?:EMOM|TABATA|STRENGTH FLOW|MIX|STRENGTH)\b/i.test(name))
+              continue;
+            if (known.has(name.toLowerCase())) continue;
+            known.add(name.toLowerCase());
+            append(name);
+            added++;
+          }
+          status.textContent = added
+            ? `Added ${added} names · ${names().length} total. Scan another section or tap Review.`
+            : 'No new names found. Move closer, avoid glare, or review the names already found.';
+        } catch (error) {
+          if (!closed)
+            status.textContent = `Could not read this frame. ${error.message || 'Try again.'}`;
+          if (!worker) workerPromise = null;
+        } finally {
+          busy = false;
+          if (!closed) update();
+        }
+      };
+      review.onclick = () => {
+        reviewing = true;
+        query('[data-live-preview]').hidden = true;
+        query('[data-live-review]').hidden = false;
+        status.textContent = 'Review your list, then add exercises with no sets.';
+        update();
+      };
+      query('[data-resume]').onclick = () => {
+        reviewing = false;
+        query('[data-live-preview]').hidden = false;
+        query('[data-live-review]').hidden = true;
+        status.textContent = 'Point at the next section and tap Read exercises.';
+        update();
+      };
+      query('[data-import]').onclick = () => {
+        const result = names();
+        if (busy || !result.length) return;
+        onImport(result);
+        dialog.close();
+      };
+      retry.onclick = () => void startCamera();
+      query('[data-cancel]').onclick = () => dialog.close();
+      dialog.addEventListener('close', cleanup, { once: true });
+      document.addEventListener('visibilitychange', onVisibility);
+      window.addEventListener('pagehide', onPageHide);
+      dialog.showModal();
+      void startCamera();
+    },
     open(onImport) {
       const dialog = document.createElement('dialog');
       dialog.className = 'data-dialog';
@@ -121,14 +334,21 @@
       <input data-camera-input type="file" accept="image/*" capture="environment" hidden>
       <input data-photos-input type="file" accept="image/*" hidden>
       <details class="photo-samples"><summary>Try a sample photo (QA)</summary><p>Select a photo to run the same OCR used for your own images.</p><div class="photo-sample-grid">${Array.from({ length: 6 }, (_, i) => `<button class="secondary photo-sample" type="button" data-sample="${i + 1}"><img src="tests/ocr-photos/photo-${i + 1}.jpg" alt="Workout board sample ${i + 1}" loading="lazy"><span>Photo ${i + 1}</span></button>`).join('')}</div></details>
-      <div data-preview hidden><p>Adjust each corner to match the text. Drag inside the outline to move the selection; scroll outside it to pan the zoomed photo.</p><div class="photo-zoom-controls"><button type="button" class="secondary" data-zoom="out" aria-label="Zoom out">−</button><output data-zoom-level>100%</output><button type="button" class="secondary" data-zoom="in" aria-label="Zoom in">＋</button><button type="button" class="secondary" data-zoom="reset">Reset zoom</button></div><div class="photo-crop-viewport"><div class="photo-crop"><img data-image alt="Photo to crop"><svg class="photo-crop-selection" viewBox="0 0 1 1" preserveAspectRatio="none"><polygon data-selection></polygon></svg>${['tl', 'tr', 'br', 'bl'].map((corner, i) => `<button type="button" class="photo-crop-corner" data-corner="${corner}" aria-label="Adjust ${['top left', 'top right', 'bottom right', 'bottom left'][i]} crop corner"></button>`).join('')}</div></div><button type="button" class="primary photo-ocr" data-ocr disabled>OCR</button></div>
+      <div data-preview hidden><p>Adjust each corner to match the text. Drag inside the outline to move the selection. With a mouse, scroll over the image to zoom and drag the zoomed image to pan; hold Shift while dragging to move the selection.</p><div class="photo-zoom-controls"><button type="button" class="secondary" data-zoom="out" aria-label="Zoom out">−</button><output data-zoom-level>100%</output><button type="button" class="secondary" data-zoom="in" aria-label="Zoom in">＋</button><button type="button" class="secondary" data-zoom="reset">Reset zoom</button></div><div class="photo-crop-viewport"><div class="photo-crop"><img data-image alt="Photo to crop"><svg class="photo-crop-selection" viewBox="0 0 1 1" preserveAspectRatio="none"><polygon data-selection></polygon></svg>${['tl', 'tr', 'br', 'bl'].map((corner, i) => `<button type="button" class="photo-crop-corner" data-corner="${corner}" aria-label="Adjust ${['top left', 'top right', 'bottom right', 'bottom left'][i]} crop corner"></button>`).join('')}</div></div><button type="button" class="primary photo-ocr" data-ocr disabled>OCR</button></div>
       <p data-status role="status" aria-live="polite">English text recognition. The first scan needs internet access.</p>
-      <div class="field" data-review><label for="photo-exercise-names">Exercise names (one per line)</label><textarea id="photo-exercise-names" class="text-input" rows="8"></textarea></div>
+      <div class="field" data-review><span class="field-label" id="photo-names-label">Exercise names</span><p>Tap a name to edit it. Tap × to remove it.</p><div id="photo-exercise-names" class="photo-exercise-names" role="list" aria-labelledby="photo-names-label"></div></div>
       <div class="form-actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="button" data-add disabled>Add exercises</button></div>`;
       document.body.append(dialog);
       const query = (selector) => dialog.querySelector(selector);
       const status = query('[data-status]');
-      const output = query('textarea');
+      const output = query('#photo-exercise-names');
+      const reviewedNames = () =>
+        [...output.children]
+          .map((row) => {
+            const input = row.querySelector('input');
+            return input ? input.value : row.querySelector('[data-name]').textContent;
+          })
+          .join('\n');
       const add = query('[data-add]');
       const image = query('[data-image]');
       const cropView = query('.photo-crop');
@@ -150,12 +370,67 @@
         closed = false,
         busy = false;
       const updateAdd = () => {
-        add.disabled = busy || !namesFromText(output.value).length;
+        add.disabled = busy || !namesFromText(reviewedNames()).length;
         ocr.disabled = busy || !ready;
         for (const button of dialog.querySelectorAll(
           '[data-camera], [data-photos], [data-sample], [data-corner], [data-zoom]',
         ))
           button.disabled = busy;
+      };
+      const appendName = (name) => {
+        const row = document.createElement('div');
+        row.className = 'exercise-name-row';
+        row.setAttribute('role', 'listitem');
+        const label = document.createElement('button');
+        label.type = 'button';
+        label.className = 'locked-exercise-name photo-exercise-name';
+        label.dataset.name = '';
+        label.textContent = name;
+        label.setAttribute('aria-label', `Edit ${name}`);
+        label.onclick = () => {
+          const input = document.createElement('input');
+          input.className = 'text-input';
+          input.value = label.textContent;
+          input.maxLength = 60;
+          input.setAttribute('aria-label', 'Exercise name');
+          const save = () => {
+            if (!input.isConnected) return;
+            const value = input.value.trim();
+            if (!value) row.remove();
+            else {
+              label.textContent = value;
+              label.setAttribute('aria-label', `Edit ${value}`);
+              remove.setAttribute('aria-label', `Delete ${value}`);
+              input.replaceWith(label);
+            }
+            updateAdd();
+          };
+          input.oninput = updateAdd;
+          input.onblur = save;
+          input.onkeydown = (event) => {
+            if (event.key === 'Enter' || event.key === 'Escape') {
+              event.preventDefault();
+              if (event.key === 'Escape') input.value = label.textContent;
+              save();
+              if (label.isConnected) label.focus();
+            }
+          };
+          label.replaceWith(input);
+          input.focus();
+          input.select();
+        };
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'name-lock-button photo-name-delete';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `Delete ${name}`);
+        remove.onpointerdown = (event) => event.preventDefault();
+        remove.onclick = () => {
+          row.remove();
+          updateAdd();
+        };
+        row.append(label, remove);
+        output.append(row);
       };
       const renderCrop = () => {
         selection.setAttribute('points', crop.map((p) => `${p.x},${p.y}`).join(' '));
@@ -243,31 +518,98 @@
       selection.onpointerup = selection.onpointercancel = () => {
         drag = null;
       };
+      const setZoom = (
+        next,
+        x = viewport.clientWidth / 2,
+        y = viewport.clientHeight / 2,
+        reset = false,
+      ) => {
+        const before = cropView.getBoundingClientRect();
+        const view = viewport.getBoundingClientRect();
+        const imageX = (view.left + viewport.clientLeft + x - before.left) / before.width;
+        const imageY = (view.top + viewport.clientTop + y - before.top) / before.height;
+        zoom = Math.max(0.5, Math.min(4, next));
+        cropView.style.width = `${zoom * 100}%`;
+        query('[data-zoom-level]').value = `${Math.round(zoom * 100)}%`;
+        const after = cropView.getBoundingClientRect();
+        viewport.scrollLeft = reset
+          ? 0
+          : viewport.scrollLeft +
+            after.left +
+            imageX * after.width -
+            (view.left + viewport.clientLeft + x);
+        viewport.scrollTop = reset
+          ? 0
+          : viewport.scrollTop +
+            after.top +
+            imageY * after.height -
+            (view.top + viewport.clientTop + y);
+        viewport.classList.toggle('is-zoomed', zoom > 1);
+      };
       for (const button of dialog.querySelectorAll('[data-zoom]')) {
-        button.onclick = () => {
-          const centerX =
-            (viewport.scrollLeft + viewport.clientWidth / 2) / cropView.offsetWidth;
-          const centerY =
-            (viewport.scrollTop + viewport.clientHeight / 2) / cropView.offsetHeight;
-          zoom =
+        button.onclick = () =>
+          setZoom(
             button.dataset.zoom === 'reset'
               ? 1
-              : Math.max(
-                  0.5,
-                  Math.min(4, zoom * (button.dataset.zoom === 'in' ? 1.25 : 0.8)),
-                );
-          cropView.style.width = `${zoom * 100}%`;
-          query('[data-zoom-level]').value = `${Math.round(zoom * 100)}%`;
-          viewport.scrollLeft =
-            button.dataset.zoom === 'reset'
-              ? 0
-              : centerX * cropView.offsetWidth - viewport.clientWidth / 2;
-          viewport.scrollTop =
-            button.dataset.zoom === 'reset'
-              ? 0
-              : centerY * cropView.offsetHeight - viewport.clientHeight / 2;
-        };
+              : zoom * (button.dataset.zoom === 'in' ? 1.25 : 0.8),
+            undefined,
+            undefined,
+            button.dataset.zoom === 'reset',
+          );
       }
+      cropView.addEventListener(
+        'wheel',
+        (event) => {
+          event.preventDefault();
+          if (busy || !ready || !event.deltaY) return;
+          const view = viewport.getBoundingClientRect();
+          setZoom(
+            zoom * (event.deltaY < 0 ? 1.25 : 0.8),
+            event.clientX - view.left - viewport.clientLeft,
+            event.clientY - view.top - viewport.clientTop,
+          );
+        },
+        { passive: false },
+      );
+      let pan = null;
+      viewport.addEventListener(
+        'pointerdown',
+        (event) => {
+          if (
+            busy ||
+            zoom <= 1 ||
+            event.pointerType !== 'mouse' ||
+            event.button !== 0 ||
+            event.shiftKey ||
+            event.target.closest('[data-corner]')
+          )
+            return;
+          event.preventDefault();
+          event.stopPropagation();
+          viewport.setPointerCapture(event.pointerId);
+          pan = {
+            x: event.clientX,
+            y: event.clientY,
+            left: viewport.scrollLeft,
+            top: viewport.scrollTop,
+          };
+          viewport.classList.add('is-panning');
+        },
+        { capture: true },
+      );
+      viewport.addEventListener('pointermove', (event) => {
+        if (!pan || !viewport.hasPointerCapture(event.pointerId)) return;
+        viewport.scrollLeft = pan.left - (event.clientX - pan.x);
+        viewport.scrollTop = pan.top - (event.clientY - pan.y);
+      });
+      const endPan = () => {
+        pan = null;
+        viewport.classList.remove('is-panning');
+      };
+      viewport.addEventListener('pointerup', endPan);
+      viewport.addEventListener('pointercancel', endPan);
+      viewport.addEventListener('lostpointercapture', endPan);
+      image.ondragstart = (event) => event.preventDefault();
       query('[data-close]').onclick = () => dialog.close();
       dialog.addEventListener(
         'close',
@@ -279,9 +621,8 @@
         },
         { once: true },
       );
-      output.oninput = updateAdd;
       add.onclick = () => {
-        const names = namesFromText(output.value);
+        const names = namesFromText(reviewedNames());
         if (!busy && names.length) {
           onImport(names);
           dialog.close();
@@ -298,6 +639,7 @@
           ready = true;
           crop = fullCrop();
           zoom = 1;
+          viewport.classList.remove('is-zoomed', 'is-panning');
           cropView.style.width = '100%';
           query('[data-zoom-level]').value = '100%';
           viewport.scrollLeft = viewport.scrollTop = 0;
@@ -335,10 +677,7 @@
           const result = await worker.recognize(canvas);
           if (closed) return;
           const names = namesFromText(result.data.text);
-          if (names.length)
-            output.value = [output.value.trimEnd(), names.join('\n')]
-              .filter(Boolean)
-              .join('\n');
+          names.forEach(appendName);
           status.textContent = names.length
             ? `Appended ${names.length} names. Scan another section, edit the list, or tap Add exercises.`
             : 'No names found in this section. Adjust the corners and try again.';

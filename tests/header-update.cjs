@@ -10,6 +10,8 @@ const assert = require('node:assert/strict');
       serviceWorkers: 'block',
       viewport: { width: 320, height: 800 },
     });
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
     await page.route('http://fit.test/**', (route) => {
       const pathname = new URL(route.request().url()).pathname;
       const file = path.join(__dirname, '..', pathname === '/' ? 'index.html' : pathname);
@@ -56,6 +58,41 @@ const assert = require('node:assert/strict');
         await page.locator('header').evaluate((el) => el.scrollWidth <= el.clientWidth),
         'Header must fit a 320px phone',
       );
+      await page.locator('#menu-button').click();
+      assert.equal(await page.locator('#data-dialog').isVisible(), true);
+      assert.equal(await page.locator('#data-dialog .menu-action').count(), 4);
+      assert.equal(await page.locator('#share-app').count(), 0);
+      if (url === '/about.html') {
+        await page.locator('#import-file').setInputFiles({
+          name: 'backup.json',
+          mimeType: 'application/json',
+          buffer: Buffer.from(JSON.stringify({ sessions: [], names: ['Test Exercise'] })),
+        });
+        await page.waitForFunction(
+          () =>
+            document.querySelector('#dialog-status').textContent ===
+            'Imported 0 sessions.',
+        );
+        assert.equal(await page.locator('.about-content h1').textContent(), 'About');
+        await page.evaluate(() =>
+          Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: {
+              writeText: async (text) => {
+                window.copiedBackup = text;
+              },
+            },
+          }),
+        );
+        await page.locator('#copy-json').click();
+        await page.waitForFunction(() => Boolean(window.copiedBackup));
+        assert.equal(
+          await page.evaluate(() => JSON.parse(window.copiedBackup).format),
+          'form-training-log',
+        );
+      }
+      await page.locator('#close-dialog').click();
+      assert.equal(await page.locator('dialog[open]').count(), 0);
       await button.click();
       await page.waitForFunction(() =>
         document.querySelector('#update-status').textContent.includes('Offline test'),
@@ -73,6 +110,7 @@ const assert = require('node:assert/strict');
         `PASS: ${url} header placement, monochrome design, phone layout, failure recovery and update reload`,
       );
     }
+    assert.deepEqual(errors, [], 'Screens should initialize without script errors');
   } finally {
     await browser.close();
   }
