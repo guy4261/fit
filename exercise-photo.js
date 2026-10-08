@@ -115,28 +115,26 @@
     openLive(onImport) {
       const dialog = document.createElement('dialog');
       dialog.className = 'data-dialog live-scan-dialog';
-      dialog.innerHTML = `<div class="dialog-head"><h2>Scan workout screen</h2></div>
-        <p>Point at the board or move closer to one panel. Keep the text inside the frame, avoid reflections, and hold still when you tap Read exercises.</p>
+      dialog.innerHTML = `<div class="dialog-head live-scan-heading"><h2>Review exercises</h2></div>
         <div data-live-preview class="live-scan-preview"><video autoplay muted playsinline aria-label="Live rear camera preview"></video><div class="live-scan-guide" aria-hidden="true"></div></div>
         <p data-live-status role="status" aria-live="polite">Opening camera… Allow camera access when asked.</p>
-        <div class="form-actions"><button class="primary" data-read disabled>Read exercises</button><button class="secondary" data-retry hidden>Retry camera</button><button class="secondary" data-review disabled>Review (0)</button></div>
+        <div class="form-actions live-scan-controls"><button class="primary" data-read disabled>Take a scan</button><button class="secondary" data-review>Done</button></div>
         <div data-live-review hidden><p>Edit names or remove unwanted headings. No sets will be added.</p><div data-live-names class="photo-exercise-names"></div><div class="form-actions"><button class="secondary" data-resume>Scan more</button><button class="primary" data-import disabled>Add exercises</button></div></div>
-        <p>The first read needs internet to load English text recognition. Images are processed in your browser.</p>
-        <div class="form-actions"><button class="secondary" data-cancel>Cancel</button></div>`;
+        <div class="form-actions live-scan-cancel"><button class="secondary" data-cancel>Cancel</button></div>`;
       document.body.append(dialog);
       const query = (selector) => dialog.querySelector(selector);
       const video = query('video');
       const status = query('[data-live-status]');
       const read = query('[data-read]');
       const review = query('[data-review]');
-      const retry = query('[data-retry]');
       const list = query('[data-live-names]');
       let stream,
         worker,
         workerPromise,
         closed = false,
         busy = false,
-        reviewing = false;
+        reviewing = false,
+        cameraFailed = false;
       const names = () =>
         namesFromText(
           [...list.querySelectorAll('input')].map((input) => input.value).join('\n'),
@@ -147,11 +145,13 @@
           closed ||
           busy ||
           reviewing ||
-          !stream ||
-          !video.videoWidth ||
-          video.readyState < 2;
-        review.disabled = busy || !count;
-        review.textContent = `Review (${count})`;
+          (!cameraFailed && (!stream || !video.videoWidth || video.readyState < 2));
+        read.textContent = cameraFailed
+          ? 'Retry camera'
+          : busy
+            ? 'Reading…'
+            : 'Take a scan';
+        review.disabled = busy;
         query('[data-import]').disabled = busy || !count;
       };
       const stopCamera = () => {
@@ -166,19 +166,21 @@
         if (worker) void worker.terminate().catch(() => {});
         document.removeEventListener('visibilitychange', onVisibility);
         window.removeEventListener('pagehide', onPageHide);
+        previewObserver.disconnect();
         dialog.remove();
       };
       const onPageHide = () => dialog.close();
       const onVisibility = () => {
         if (document.hidden) {
           stopCamera();
-          retry.hidden = false;
+          cameraFailed = true;
           status.textContent = 'Camera paused. Tap Retry camera when you return.';
           update();
         }
       };
       const startCamera = async () => {
-        retry.hidden = true;
+        cameraFailed = false;
+        update();
         status.textContent = 'Opening camera… Allow camera access when asked.';
         try {
           if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)
@@ -202,19 +204,19 @@
           video.srcObject = stream;
           stream.getVideoTracks()[0].onended = () => {
             stopCamera();
-            retry.hidden = false;
+            cameraFailed = true;
             status.textContent = 'Camera stopped. Tap Retry camera.';
             update();
           };
           await video.play();
           if (closed) return;
           status.textContent =
-            'Ready. Read the whole board first, then scan any missed sections.';
+            'Fit the text inside the frame and hold still. Scan the board, then move closer for missed sections. First scan needs internet.';
           update();
         } catch (error) {
           if (closed) return;
           stopCamera();
-          retry.hidden = false;
+          cameraFailed = true;
           status.textContent =
             error.name === 'NotAllowedError'
               ? 'Camera access was denied. Allow it in Safari’s website settings and retry, or use Photo.'
@@ -223,6 +225,27 @@
         }
       };
       video.addEventListener('loadeddata', update);
+      // The guide follows the actual image, including letterboxing in landscape.
+      const positionGuide = () => {
+        if (!video.videoWidth) return;
+        const preview = query('[data-live-preview]');
+        const scale = Math.min(
+          preview.clientWidth / video.videoWidth,
+          preview.clientHeight / video.videoHeight,
+        );
+        const width = video.videoWidth * scale;
+        const height = video.videoHeight * scale;
+        Object.assign(query('.live-scan-guide').style, {
+          left: `${(preview.clientWidth - width) / 2 + width * 0.05}px`,
+          top: `${(preview.clientHeight - height) / 2 + height * 0.05}px`,
+          width: `${width * 0.9}px`,
+          height: `${height * 0.9}px`,
+        });
+      };
+      const previewObserver = new ResizeObserver(positionGuide);
+      previewObserver.observe(query('[data-live-preview]'));
+      video.addEventListener('resize', positionGuide);
+      video.addEventListener('loadedmetadata', positionGuide);
       const append = (name) => {
         const row = document.createElement('div');
         row.className = 'exercise-name-row';
@@ -245,6 +268,10 @@
       };
       read.onclick = async () => {
         if (read.disabled) return;
+        if (cameraFailed) {
+          void startCamera();
+          return;
+        }
         busy = true;
         update();
         status.textContent = 'Reading captured frame… You can point at the next section.';
@@ -286,7 +313,7 @@
             added++;
           }
           status.textContent = added
-            ? `Added ${added} names · ${names().length} total. Scan another section or tap Review.`
+            ? `Added ${added} names · ${names().length} total. Scan another section or tap Done.`
             : 'No new names found. Move closer, avoid glare, or review the names already found.';
         } catch (error) {
           if (!closed)
@@ -298,7 +325,12 @@
         }
       };
       review.onclick = () => {
+        if (!names().length) {
+          dialog.close();
+          return;
+        }
         reviewing = true;
+        dialog.classList.add('is-reviewing');
         query('[data-live-preview]').hidden = true;
         query('[data-live-review]').hidden = false;
         status.textContent = 'Review your list, then add exercises with no sets.';
@@ -306,9 +338,10 @@
       };
       query('[data-resume]').onclick = () => {
         reviewing = false;
+        dialog.classList.remove('is-reviewing');
         query('[data-live-preview]').hidden = false;
         query('[data-live-review]').hidden = true;
-        status.textContent = 'Point at the next section and tap Read exercises.';
+        status.textContent = `Point at the next section and tap Take a scan · ${names().length} names saved.`;
         update();
       };
       query('[data-import]').onclick = () => {
@@ -317,7 +350,6 @@
         onImport(result);
         dialog.close();
       };
-      retry.onclick = () => void startCamera();
       query('[data-cancel]').onclick = () => dialog.close();
       dialog.addEventListener('close', cleanup, { once: true });
       document.addEventListener('visibilitychange', onVisibility);

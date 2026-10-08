@@ -2,7 +2,7 @@
 
 ## Live workout screen scanning
 
-In an active session, tap **Scan screen**, allow camera access, and point at the workout board. Tap **Read exercises** while holding still. The camera stays open, so you can move closer and read additional panels. Exact duplicate names and common workout headings are skipped. Tap **Review** to edit or remove names, then **Add exercises**. These exercises start with zero sets; record sets later through **Edit**. **Scan more** returns to the camera without losing the list.
+In an active session, tap **Scan screen**, allow camera access, and point at the workout board. The scanner fills the screen in portrait or landscape, with two always-visible controls: **Take a scan** and **Done**. Tap **Take a scan** while holding still. The camera stays open, so you can move closer and read additional panels. Exact duplicate names and common workout headings are skipped. Tap **Done** to review, edit or remove names, then **Add exercises**. Done closes the scanner if no names have been found. These exercises start with zero sets; record sets later through **Edit**. **Scan more** returns to the camera without losing the list.
 
 Frames are passed directly to browser OCR as canvases, without inline base64 images or video recording. The first read needs internet to load the OCR engine. Closing the scanner stops the camera; switching away pauses it and offers **Retry camera** when you return. The existing **Photo** button remains available.
 
