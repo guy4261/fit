@@ -117,9 +117,10 @@
       dialog.className = 'data-dialog live-scan-dialog';
       dialog.innerHTML = `<div class="dialog-head live-scan-heading"><h2>Review exercises</h2></div>
         <div data-live-preview class="live-scan-preview"><video autoplay muted playsinline aria-label="Live rear camera preview"></video><div class="live-scan-guide" aria-hidden="true"></div></div>
+        <section class="live-scan-results" data-live-results hidden aria-label="Detected exercises"><div class="live-scan-results-head"><strong data-results-title></strong><button class="secondary" data-clear-all type="button">Clear All</button></div><ul data-detected-names></ul><p data-detected-empty hidden></p><details data-raw-results hidden><summary>Raw detected text</summary><pre data-detected-text></pre></details></section>
         <p data-live-status role="status" aria-live="polite">Opening camera… Allow camera access when asked.</p>
         <div class="form-actions live-scan-controls"><button class="primary" data-read disabled>Take a scan</button><button class="secondary" data-review>Done</button></div>
-        <div data-live-review hidden><p>Edit names or remove unwanted headings. No sets will be added.</p><div data-live-names class="photo-exercise-names"></div><div class="form-actions"><button class="secondary" data-resume>Scan more</button><button class="primary" data-import disabled>Add exercises</button></div></div>
+        <div data-live-review hidden><p>Edit names or remove unwanted headings. No sets will be added.</p><button class="secondary" data-clear-all type="button">Clear All</button><div data-live-names class="photo-exercise-names"></div><div class="form-actions"><button class="secondary" data-resume>Scan more</button><button class="primary" data-import disabled>Add exercises</button></div></div>
         <div class="form-actions live-scan-cancel"><button class="secondary" data-cancel>Cancel</button></div>`;
       document.body.append(dialog);
       const query = (selector) => dialog.querySelector(selector);
@@ -134,25 +135,59 @@
         closed = false,
         busy = false,
         reviewing = false,
-        cameraFailed = false;
+        cameraFailed = false,
+        pendingNames = null;
       const names = () =>
         namesFromText(
           [...list.querySelectorAll('input')].map((input) => input.value).join('\n'),
         );
       const update = () => {
-        const count = names().length;
+        const savedNames = names();
+        const count = savedNames.length;
+        const known = new Set(savedNames.map((name) => name.toLowerCase()));
+        const freshNames = pendingNames?.filter((name) => !known.has(name.toLowerCase()));
         read.disabled =
           closed ||
           busy ||
           reviewing ||
-          (!cameraFailed && (!stream || !video.videoWidth || video.readyState < 2));
-        read.textContent = cameraFailed
-          ? 'Retry camera'
-          : busy
-            ? 'Reading…'
-            : 'Take a scan';
+          (pendingNames !== null
+            ? !freshNames.length
+            : !cameraFailed && (!stream || !video.videoWidth || video.readyState < 2));
+        read.textContent = busy
+          ? 'Reading…'
+          : pendingNames !== null
+            ? `Add results (${freshNames.length})`
+            : cameraFailed
+              ? 'Retry camera'
+              : 'Take a scan';
         review.disabled = busy;
+        review.textContent =
+          pendingNames !== null ? (cameraFailed ? 'Retry camera' : 'Retry') : 'Done';
         query('[data-import]').disabled = busy || !count;
+        for (const button of dialog.querySelectorAll('[data-clear-all]'))
+          button.disabled = busy || (!count && pendingNames === null);
+        const showResults = !reviewing && (pendingNames !== null || count > 0);
+        query('[data-live-results]').hidden = !showResults;
+        dialog.classList.toggle('has-results', showResults);
+        query('[data-results-title]').textContent =
+          pendingNames !== null ? 'This scan' : `${count} saved exercises`;
+        const detectedList = query('[data-detected-names]');
+        detectedList.replaceChildren();
+        for (const name of pendingNames ?? savedNames) {
+          const item = document.createElement('li');
+          item.textContent = name;
+          if (pendingNames !== null && known.has(name.toLowerCase())) {
+            const duplicate = document.createElement('small');
+            duplicate.textContent = 'Already added';
+            item.append(duplicate);
+          }
+          detectedList.append(item);
+        }
+        query('[data-detected-empty]').hidden =
+          pendingNames === null || pendingNames.length > 0;
+        query('[data-detected-empty]').textContent =
+          'No exercise names found. Move closer or avoid reflections, then retry.';
+        query('[data-raw-results]').hidden = pendingNames === null;
       };
       const stopCamera = () => {
         if (stream) stream.getTracks().forEach((track) => track.stop());
@@ -266,10 +301,17 @@
         row.append(input, remove);
         list.append(row);
       };
-      read.onclick = async () => {
-        if (read.disabled) return;
+      const scanFrame = async () => {
+        if (busy || closed) return;
+        pendingNames = null;
+        query('[data-raw-results]').open = false;
         if (cameraFailed) {
           void startCamera();
+          return;
+        }
+        if (!stream || !video.videoWidth || video.readyState < 2) {
+          status.textContent = 'Wait for the camera to be ready, then tap Take a scan.';
+          update();
           return;
         }
         busy = true;
@@ -302,19 +344,13 @@
           }
           const result = await worker.recognize(canvas);
           if (closed) return;
-          const known = new Set(names().map((name) => name.toLowerCase()));
-          let added = 0;
-          for (const name of namesFromText(result.data.text)) {
-            if (/^(?:[A-F] )?(?:EMOM|TABATA|STRENGTH FLOW|MIX|STRENGTH)\b/i.test(name))
-              continue;
-            if (known.has(name.toLowerCase())) continue;
-            known.add(name.toLowerCase());
-            append(name);
-            added++;
-          }
-          status.textContent = added
-            ? `Added ${added} names · ${names().length} total. Scan another section or tap Done.`
-            : 'No new names found. Move closer, avoid glare, or review the names already found.';
+          pendingNames = namesFromText(result.data.text).filter(
+            (name) =>
+              !/^(?:[A-F] )?(?:EMOM|TABATA|STRENGTH FLOW|MIX|STRENGTH)\b/i.test(name),
+          );
+          query('[data-detected-text]').textContent = result.data.text;
+          status.textContent =
+            'Check the detected names below. Add results to keep them, or reposition the camera and Retry.';
         } catch (error) {
           if (!closed)
             status.textContent = `Could not read this frame. ${error.message || 'Try again.'}`;
@@ -324,7 +360,28 @@
           if (!closed) update();
         }
       };
+      read.onclick = () => {
+        if (read.disabled) return;
+        if (pendingNames !== null) {
+          const known = new Set(names().map((name) => name.toLowerCase()));
+          let added = 0;
+          for (const name of pendingNames) {
+            if (known.has(name.toLowerCase())) continue;
+            append(name);
+            known.add(name.toLowerCase());
+            added++;
+          }
+          pendingNames = null;
+          status.textContent = `Saved ${added} names · ${names().length} total. Take another scan or tap Done.`;
+          update();
+        } else void scanFrame();
+      };
       review.onclick = () => {
+        if (busy) return;
+        if (pendingNames !== null) {
+          void scanFrame();
+          return;
+        }
         if (!names().length) {
           dialog.close();
           return;
@@ -351,6 +408,17 @@
         dialog.close();
       };
       query('[data-cancel]').onclick = () => dialog.close();
+      for (const button of dialog.querySelectorAll('[data-clear-all]')) {
+        button.onclick = () => {
+          if (busy) return;
+          list.replaceChildren();
+          pendingNames = null;
+          query('[data-detected-text]').textContent = '';
+          status.textContent =
+            'All scan results cleared. Scan again to start a new list.';
+          update();
+        };
+      }
       dialog.addEventListener('close', cleanup, { once: true });
       document.addEventListener('visibilitychange', onVisibility);
       window.addEventListener('pagehide', onPageHide);

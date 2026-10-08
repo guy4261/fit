@@ -443,6 +443,50 @@
     const latestText = `Last time: ${weightText(latest)} · ${daysAgo(latest.session.date)}`;
     return `<p>${esc(recordText)}</p>${latest.session !== record.session ? `<p>${esc(latestText)}</p>` : ''}`;
   }
+  let buildInfoPromise;
+  function showBuildInfo(footer) {
+    if (!buildInfoPromise)
+      buildInfoPromise = fetch('build-info.txt')
+        .then((response) => {
+          if (!response.ok) throw new Error('Build information unavailable');
+          return response.json();
+        })
+        .then((info) => {
+          if (
+            !/^[a-f0-9]{40}$/i.test(info.sha) ||
+            !Number.isFinite(Date.parse(info.builtAt))
+          )
+            throw new Error('Invalid build information');
+          return info;
+        })
+        .catch(() => null);
+    buildInfoPromise.then((info) => {
+      if (!footer.isConnected) return;
+      if (!info) {
+        footer.textContent =
+          ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname) ||
+          location.protocol === 'file:'
+            ? 'Local development'
+            : 'Build information unavailable';
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = `https://github.com/guy4261/fit/commit/${info.sha}`;
+      link.textContent = `Build ${info.sha.slice(0, 7)}`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      const time = document.createElement('time');
+      time.dateTime = info.builtAt;
+      time.textContent = new Date(info.builtAt).toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      footer.replaceChildren(link, document.createTextNode(' · '), time);
+    });
+  }
   function renderHome() {
     const ss = [...data.sessions].sort(
       (a, b) =>
@@ -458,7 +502,8 @@
             })
             .join('')}</div>`
         : `<div class="empty"><div class="empty-icon">🏋️</div><b>Your first session starts here</b>Your training history will show up after you finish a session.</div>`
-    }`;
+    }<footer class="build-info" data-build-info aria-label="App build" role="status">Loading build information…</footer>`;
+    showBuildInfo($('[data-build-info]'));
     $('#start').onclick = () => {
       startSession();
     };

@@ -1849,6 +1849,19 @@ dialog::backdrop {
 .exercise-actions .live-scan-action {
   grid-column: 1 / -1;
 }
+.build-info {
+  margin-top: 28px;
+  padding: 16px 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.build-info a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
 dialog.live-scan-dialog {
   position: fixed;
   inset: 0;
@@ -1866,9 +1879,10 @@ dialog.live-scan-dialog {
 }
 dialog.live-scan-dialog[open]:not(.is-reviewing) {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
 }
 .live-scan-preview {
+  grid-row: 1;
   position: relative;
   min-height: 0;
   background: #111;
@@ -1899,6 +1913,8 @@ dialog.live-scan-dialog[open]:not(.is-reviewing) {
   display: none;
 }
 .live-scan-dialog [data-live-status] {
+  grid-row: 3;
+  grid-column: 1 / -1;
   margin: 0;
   padding: 8px max(16px, env(safe-area-inset-right)) 8px
     max(16px, env(safe-area-inset-left));
@@ -1907,6 +1923,8 @@ dialog.live-scan-dialog[open]:not(.is-reviewing) {
   color: inherit;
 }
 .live-scan-dialog .live-scan-controls {
+  grid-row: 4;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
@@ -1923,4 +1941,70 @@ dialog.live-scan-dialog.is-reviewing {
   overflow-y: auto;
   background: var(--white);
   color: var(--ink);
+}
+.live-scan-results {
+  grid-row: 2;
+  min-height: 0;
+  max-height: min(28dvh, 210px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(16px, env(safe-area-inset-right)) 8px
+    max(16px, env(safe-area-inset-left));
+  background: #202720;
+  font-size: 14px;
+}
+.live-scan-results-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  background: inherit;
+}
+.live-scan-results-head button {
+  min-height: 44px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+.live-scan-results ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.live-scan-results li {
+  padding: 7px 0;
+  border-bottom: 1px solid #ffffff26;
+  overflow-wrap: anywhere;
+}
+.live-scan-results li small {
+  display: block;
+  color: #b8c9b8;
+}
+.live-scan-results summary {
+  padding: 12px 0;
+  cursor: pointer;
+}
+.live-scan-results pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+@media (orientation: landscape) {
+  dialog.live-scan-dialog[open].has-results:not(.is-reviewing) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  .live-scan-dialog.has-results .live-scan-results {
+    grid-row: 1;
+    grid-column: 2;
+    max-height: none;
+  }
+  .live-scan-dialog.has-results [data-live-status] {
+    grid-row: 2;
+  }
+  .live-scan-dialog.has-results .live-scan-controls {
+    grid-row: 3;
+  }
 }

@@ -1,4 +1,4 @@
-const CACHE = 'fit24-v44';
+const CACHE = 'fit24-v46';
 const FILES = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const FILES = [
   './icons/share.svg',
   './style.css',
   './app.js',
+  './build-info.txt',
   './exercise-photo.js',
   './update-app.js',
   './images/body.png',
