@@ -586,14 +586,18 @@ button {
   flex: none;
 }
 .session-date b {
-  font-size: 19px;
+  font-size: 16px;
   line-height: 1;
 }
 .session-date small {
-  font-size: 10px;
+  font-size: 9px;
+  line-height: 1;
   color: var(--muted);
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 3px;
+}
+.session-date .session-year {
+  font-size: 9px;
 }
 .session-info {
   flex: 1;
