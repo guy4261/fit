@@ -823,7 +823,8 @@
       if (!REPS_TYPES.includes(set.reps_type)) set.reps_type = 'Reps';
     });
     let selectedSetIndex = -1;
-    const initialReps = boundedReps(ex.reps);
+    let loadDefaultName = index === null ? null : ex.name;
+    const initialReps = 1;
     let repsType = recordedSets[0]?.reps_type || 'Reps';
     const returnToSession = () =>
       session === active ? renderActive() : renderSaved(session.id);
@@ -920,6 +921,17 @@
         label.className = 'locked-exercise-name';
         label.textContent = name;
         input.replaceWith(label);
+        if (!recordedSets.length && name !== loadDefaultName) {
+          const latest = exercisePerformances(name).at(-1);
+          const type = latest?.weightData?.type || 'body';
+          const radio = $(`input[name="type"][value="${type}"]`, form);
+          if (radio) {
+            ex.weight = { type: 'body' };
+            radio.checked = true;
+            panel();
+          }
+          loadDefaultName = name;
+        }
         const history = $('#exercise-history', form);
         history.innerHTML = exerciseHistory(name);
         history.hidden = false;
