@@ -297,7 +297,7 @@
   function sessionTitle(date) {
     const d = new Date(date);
     var rv = d.toLocaleString(undefined, {
-      dateStyle: 'medium',
+      weekday: 'long',
     });
     rv += ` ${partOfDay(d.getHours())}`;
     return rv;
@@ -306,12 +306,20 @@
     return sessionTitle(date);
   }
   function bindSessionName(session, isActive) {
-    const label = $('#session-name');
-    const button = $('#edit-session-name');
-    if (!label || !button) return;
-    button.onclick = () => {
-      if (button.dataset.editing === 'true') {
-        const input = $('#session-name-input');
+    const label = $('#session-name-label');
+    if (!label) return;
+    label.onclick = () => {
+      const input = document.createElement('input');
+      input.id = 'session-name-input';
+      input.className = 'text-input session-name-input';
+      input.type = 'text';
+      input.value = session.title;
+      input.maxLength = 100;
+      input.setAttribute('aria-label', 'Session name');
+      input.oninput = () => input.setCustomValidity('');
+      input.onkeydown = (event) => {
+        if (event.key !== 'Enter' || event.isComposing) return;
+        event.preventDefault();
         const title = input.value.trim();
         if (!title) {
           input.setCustomValidity('Enter a session name.');
@@ -323,25 +331,10 @@
         label.textContent = title;
         label.hidden = false;
         input.remove();
-        button.textContent = '✎';
-        button.setAttribute('aria-label', 'Edit session name');
-        button.title = 'Edit session name';
-        button.dataset.editing = 'false';
-        return;
-      }
-      const input = document.createElement('input');
-      input.id = 'session-name-input';
-      input.className = 'text-input session-name-input';
-      input.type = 'text';
-      input.value = session.title;
-      input.maxLength = 100;
-      input.setAttribute('aria-label', 'Session name');
+        label.focus();
+      };
       label.hidden = true;
-      label.after(input);
-      button.textContent = '💾';
-      button.setAttribute('aria-label', 'Save session name');
-      button.title = 'Save session name';
-      button.dataset.editing = 'true';
+      label.parentElement.after(input);
       input.focus();
       input.select();
     };
@@ -650,7 +643,7 @@
   }
   function renderActive() {
     const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="Edit session name">${esc(active.title)}</button></h1></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     validateActiveSessionTimes = bindSessionTimeInputs(active);
     bindSessionName(active, true);
     $('#back').onclick = () => {
@@ -1469,7 +1462,7 @@
       location.hash = '';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(s.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-saved-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="Edit session name">${esc(s.title)}</button></h1></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-saved-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
     bindSessionTimeInputs(s);
     bindSessionName(s, false);
     $('#saved-back').onclick = () => {

@@ -661,14 +661,20 @@ button {
   align-items: center;
   gap: 6px;
 }
-.session-name-edit {
-  flex: 0 0 auto;
+.session-name-label {
   border: 0;
   background: transparent;
-  color: var(--muted);
-  padding: 4px;
+  color: inherit;
+  padding: 0;
   cursor: pointer;
-  font-size: 17px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.session-name-label:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 .session-name-input {
   width: min(100%, 340px);
