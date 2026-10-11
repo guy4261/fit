@@ -145,8 +145,7 @@
     historyOrder =
       localStorage.getItem('form-training-log-history-order') === 'oldest'
         ? 'oldest'
-        : 'latest',
-    validateActiveSessionTimes = () => true;
+        : 'latest';
   function migrateSession(session) {
     const exercises = Array.isArray(session.exercises) ? session.exercises : [];
     const migratedStarts = exercises
@@ -317,21 +316,29 @@
       input.maxLength = 100;
       input.setAttribute('aria-label', 'Session name');
       input.oninput = () => input.setCustomValidity('');
-      input.onkeydown = (event) => {
-        if (event.key !== 'Enter' || event.isComposing) return;
-        event.preventDefault();
+      let nameSaved = false;
+      const saveName = (focusLabel = false) => {
+        if (nameSaved) return;
         const title = input.value.trim();
         if (!title) {
+          if (!focusLabel) return;
           input.setCustomValidity('Enter a session name.');
           input.reportValidity();
           return;
         }
+        nameSaved = true;
         session.title = title;
         if (!isActive) save();
         label.textContent = title;
         label.hidden = false;
         input.remove();
-        label.focus();
+        if (focusLabel) label.focus();
+      };
+      input.onblur = () => saveName();
+      input.onkeydown = (event) => {
+        if (event.key !== 'Enter' || event.isComposing) return;
+        event.preventDefault();
+        saveName(true);
       };
       label.hidden = true;
       label.parentElement.after(input);
@@ -642,13 +649,25 @@
     renderActive();
   }
   function renderActive() {
-    const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="Edit session name">${esc(active.title)}</button></h1></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
-    validateActiveSessionTimes = bindSessionTimeInputs(active);
-    bindSessionName(active, true);
+    renderSession(active);
+  }
+  function renderSession(session) {
+    const isSaved = data.sessions.includes(session);
+    if (isSaved) save();
+    const canReorder = session.exercises.length > 0;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="Edit session name">${esc(session.title)}</button></h1></div><p>${session.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(session.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(session.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${session.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${session.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${session.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    const validateTimes = bindSessionTimeInputs(session);
+    bindSessionName(session, !isSaved);
     $('#back').onclick = () => {
+      if (isSaved) {
+        if (!validateTimes()) return;
+        save();
+        location.hash = '#home';
+        renderHome();
+        return;
+      }
       if (
-        !active.exercises.length ||
+        !session.exercises.length ||
         confirm('Leave this session? It has not been saved.')
       ) {
         active = null;
@@ -658,14 +677,14 @@
     };
     $('#reorder').onclick = () => {
       reorderMode = !reorderMode;
-      renderActive();
+      renderSession(session);
     };
-    $('#add')?.addEventListener('click', () => exerciseForm());
+    $('#add')?.addEventListener('click', () => exerciseForm(null, session));
     $('#import-exercise-photo')?.addEventListener('click', () => {
       ExercisePhoto.open((names) => {
         for (const detectedName of names) {
           const name = detectedName;
-          active.exercises.push({ name, sets: 1, reps: 1, weight: { type: 'body' } });
+          session.exercises.push({ name, sets: 1, reps: 1, weight: { type: 'body' } });
           if (
             !data.names.some(
               (saved) => normalizeExerciseName(saved) === normalizeExerciseName(name),
@@ -675,13 +694,13 @@
         }
         save();
         updateNames();
-        renderActive();
+        renderSession(session);
       });
     });
     $('#scan-workout-screen')?.addEventListener('click', () => {
       ExercisePhoto.openLive((names) => {
         for (const name of names) {
-          active.exercises.push({
+          session.exercises.push({
             name,
             sets: 0,
             reps: 0,
@@ -697,26 +716,26 @@
         }
         save();
         updateNames();
-        renderActive();
+        renderSession(session);
       });
     });
     if (canReorder)
       $('#scan-exercises')?.addEventListener('click', () =>
-        showSessionQr(active.exercises),
+        showSessionQr(session.exercises),
       );
-    else $('#scan-exercises')?.addEventListener('click', openExerciseScanner);
+    else $('#scan-exercises')?.addEventListener('click', () => openExerciseScanner(session));
     $('#rotate-exercises')?.addEventListener('click', () => {
-      if (active.exercises.length < 2) return;
-      active.exercises.unshift(active.exercises.pop());
-      renderActive();
+      if (session.exercises.length < 2) return;
+      session.exercises.unshift(session.exercises.pop());
+      renderSession(session);
     });
     $('#rotate-exercises-reverse')?.addEventListener('click', () => {
-      if (active.exercises.length < 2) return;
-      active.exercises.push(active.exercises.shift());
-      renderActive();
+      if (session.exercises.length < 2) return;
+      session.exercises.push(session.exercises.shift());
+      renderSession(session);
     });
-    $('#finish').onclick = finish;
-    $('#finish-bottom')?.addEventListener('click', finish);
+    $('#finish').onclick = () => finish(session, validateTimes);
+    $('#finish-bottom')?.addEventListener('click', () => finish(session, validateTimes));
     if (reorderMode) {
       const list = $('#exercise-list');
       let pointerDraggedIndex = null;
@@ -763,10 +782,10 @@
         const finishPointerReorder = () => {
           if (pointerDraggedIndex === null) return;
           if (pointerMoved) {
-            active.exercises = [...list.querySelectorAll('.exercise-card')].map(
-              (item) => active.exercises[Number(item.dataset.exerciseIndex)],
+            session.exercises = [...list.querySelectorAll('.exercise-card')].map(
+              (item) => session.exercises[Number(item.dataset.exerciseIndex)],
             );
-            renderActive();
+            renderSession(session);
           }
           pointerDraggedIndex = null;
           pointerCard = null;
@@ -782,12 +801,12 @@
     }
     app
       .querySelectorAll('[data-edit]')
-      .forEach((b) => (b.onclick = () => exerciseForm(+b.dataset.edit)));
+      .forEach((b) => (b.onclick = () => exerciseForm(+b.dataset.edit, session)));
     app.querySelectorAll('[data-remove]').forEach(
       (b) =>
         (b.onclick = () => {
-          active.exercises.splice(+b.dataset.remove, 1);
-          renderActive();
+          session.exercises.splice(+b.dataset.remove, 1);
+          renderSession(session);
         }),
     );
   }
@@ -827,7 +846,7 @@
     const initialReps = 1;
     let repsType = recordedSets[0]?.reps_type || 'Reps';
     const returnToSession = () =>
-      session === active ? renderActive() : renderSaved(session.id);
+      renderSession(session);
     const numberWheel = (
       id,
       label,
@@ -903,7 +922,7 @@
     }
     $('#form-back').onclick = returnToSession;
     $('#cancel').onclick = returnToSession;
-    function toggleExerciseName() {
+    function toggleExerciseName(focusLabel = true) {
       const input = $('#name', form);
       if (input) {
         const name = preferredExerciseName(input.value);
@@ -920,6 +939,7 @@
         label.id = 'name-label';
         label.className = 'locked-exercise-name';
         label.textContent = name;
+        input.dataset.nameSaved = 'true';
         input.replaceWith(label);
         if (!recordedSets.length && name !== loadDefaultName) {
           const latest = exercisePerformances(name).at(-1);
@@ -939,7 +959,7 @@
         form.classList.add('name-saved');
         $('.exercise-controls', form).hidden = false;
         $('#done', form).hidden = false;
-        label.focus();
+        if (focusLabel) label.focus();
       } else {
         const label = $('#name-label', form);
         const editable = document.createElement('input');
@@ -968,6 +988,16 @@
       if (event.target.id === 'name' && event.key === 'Enter' && !event.isComposing) {
         event.preventDefault();
         toggleExerciseName();
+      }
+    });
+    $('#name-container').addEventListener('focusout', (event) => {
+      if (
+        event.target.id === 'name' &&
+        event.target.dataset.nameSaved !== 'true' &&
+        event.target.isConnected &&
+        event.target.value.trim()
+      ) {
+        toggleExerciseName(false);
       }
     });
     function setupNumberWheel(
@@ -1327,11 +1357,11 @@
       returnToSession();
     };
   }
-  function finish() {
-    if (!validateActiveSessionTimes()) return;
-    if (!active.exercises.length && !confirm('Finish this session without exercises?'))
+  function finish(session, validateTimes) {
+    if (!validateTimes()) return;
+    if (!session.exercises.length && !confirm('Finish this session without exercises?'))
       return;
-    data.sessions.push(active);
+    if (!data.sessions.includes(session)) data.sessions.push(session);
     save();
     active = null;
     location.hash = '#home';
@@ -1372,7 +1402,7 @@
     const video = $('#scan-video');
     if (video) video.srcObject = null;
   }
-  async function openExerciseScanner() {
+  async function openExerciseScanner(session = active) {
     scanDialog.showModal();
     $('#scan-status').textContent = 'Loading scanner and requesting camera…';
     try {
@@ -1432,7 +1462,7 @@
                 )
               )
                 data.names.push(name);
-              active.exercises.push({
+              session.exercises.push({
                 name,
                 sets: 1,
                 reps: 1,
@@ -1443,7 +1473,7 @@
             updateNames();
             stopExerciseScanner();
             scanDialog.close();
-            renderActive();
+            renderSession(session);
             return;
           } catch (error) {
             $('#scan-status').textContent =
@@ -1469,30 +1499,13 @@
     scanDialog.addEventListener('cancel', stopExerciseScanner);
   }
   function renderSaved(id) {
-    let s = data.sessions.find((x) => x.id === id);
-    if (!s) {
-      location.hash = '';
+    const session = data.sessions.find((item) => item.id === id);
+    if (!session) {
+      location.hash = '#home';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="Edit session name">${esc(s.title)}</button></h1></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-saved-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
-    bindSessionTimeInputs(s);
-    bindSessionName(s, false);
-    $('#saved-back').onclick = () => {
-      location.hash = '#home';
-      renderHome();
-    };
-    $('#saved-show-qr').onclick = () => showSessionQr(s.exercises);
-    app.querySelectorAll('[data-saved-edit]').forEach((button) => {
-      button.onclick = () => exerciseForm(Number(button.dataset.savedEdit), s);
-    });
-    $('#delete').onclick = () => {
-      if (confirm('Delete this training session?')) {
-        data.sessions = data.sessions.filter((x) => x.id !== id);
-        save();
-        location.hash = '#home';
-        renderHome();
-      }
-    };
+    reorderMode = false;
+    renderSession(session);
   }
   function route() {
     if (!app) return;
