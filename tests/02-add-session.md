@@ -5,8 +5,8 @@ Start from the home page.
 
 ## Steps
 1. Start a training session and add an exercise.
-2. Before saving the name, verify only the exercise name input, floppy disk button, and Cancel are shown.
-3. Enter `Bench Press` and save the name.
+2. Before saving the name, verify only the exercise name input, note button, and Cancel are shown.
+3. Enter `Bench Press` and press Enter. Verify the name becomes a clickable label and no pencil or save-name button appears. Click the label, edit the name, and press Enter again.
 4. Verify the load type, weight controls, Reps selector, stamp, Sets row, and Cancel / Done actions appear.
 5. Choose a low Reps value, stamp a set, change Reps and stamp a second set.
 6. Select Done, then finish the session.

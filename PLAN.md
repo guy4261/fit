@@ -183,7 +183,7 @@ Compare by replacing hyphens with spaces, trimming, collapsing repeated whitespa
 
 Suggestions must work while typing, when adding another exercise in the same draft, after unlocking a name, and when entering through a direct saved-session URL. Native datalist filtering alone may not match hyphens as spaces; use a small accessible suggestion list if necessary. Canonicalize on selection, name locking, and submission. Bind/update whenever an input is created.
 
-The save-name button turns the input into a label and reveals previous performance; the pencil returns to editing. Show **First time ever!** for no saved matches. Otherwise show **All-time record**, load, and **Today** or **N days ago**. Show **Last time** when its session differs from the record's session. Use identical normalization for suggestions, prior history, and High Score. Use the most recent occurrence to resolve equal maximum loads consistently.
+Pressing Enter in the name input turns it into a clickable label and reveals previous performance; clicking the label returns to editing. Show **First time ever!** for no saved matches. Otherwise show **All-time record**, load, and **Today** or **N days ago**. Show **Last time** when its session differs from the record's session. Use identical normalization for suggestions, prior history, and High Score. Use the most recent occurrence to resolve equal maximum loads consistently.
 
 ### Weight controls
 

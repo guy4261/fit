@@ -737,6 +737,28 @@ button {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.exercise-card-content {
+  flex: 1;
+  min-width: 0;
+}
+.exercise-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.exercise-title-row h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.exercise-title-row .exercise-icon-action {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 17px;
 }
 .exercise-card h3 {
   font-size: 18px;
@@ -756,11 +778,6 @@ button {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-}
-.card-controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
 }
 .small-action {
   border: 0;
@@ -910,6 +927,15 @@ select:focus {
   border-radius: 12px;
   background: #f3f3ec;
   color: var(--ink);
+}
+#name-label {
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+#name-label:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 .name-lock-button {
   flex: 0 0 48px;

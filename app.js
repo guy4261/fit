@@ -253,7 +253,7 @@
     const weight = total(w);
     const displayWeight =
       w.type === 'plates' && Number.isInteger(weight) ? weight.toFixed(1) : weight;
-    return `${w.type === 'dumbbell' && w.count === 2 ? '2 × ' : ''}${displayWeight} kg`;
+    return `${displayWeight} kg`;
   }
   function setSummaryHtml(exercise) {
     const entries = Array.isArray(exercise.setEntries) ? exercise.setEntries : [];
@@ -650,7 +650,7 @@
   }
   function renderActive() {
     const canReorder = active.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div><div class="card-controls"><button class="small-action" data-edit="${i}">Edit</button><button class="small-action delete" data-remove="${i}">Remove</button></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(active.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${active.exercises.length} exercises</p></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(active.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(active.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${active.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (active.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${active.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${active.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     validateActiveSessionTimes = bindSessionTimeInputs(active);
     bindSessionName(active, true);
     $('#back').onclick = () => {
@@ -852,7 +852,7 @@
       kettlebell: 'images/kettlebell.png',
     };
     const nameSaved = index !== null;
-    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card${nameSaved ? ' name-saved' : ''}" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container">${nameSaved ? `<span id="name-label" class="locked-exercise-name">${esc(ex.name)}</span>` : `<input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off">`}<button class="name-lock-button" id="toggle-name-lock" type="button" aria-label="${nameSaved ? 'Edit' : 'Save'} exercise name" title="${nameSaved ? 'Edit' : 'Save'} exercise name">${nameSaved ? '✏️' : '💾'}</button><button class="name-lock-button note-button" id="edit-exercise-note" type="button" aria-label="Add exercise note" title="Add exercise note">🗒️</button></div></div><div class="exercise-controls"${nameSaved ? '' : ' hidden'}><div class="field"><span class="field-label">Load type</span><div class="load-selection-row"><div class="weight-types"><label class="weight-option"><input type="radio" name="type" value="body" aria-label="Body" title="Body" ${ex.weight.type === 'body' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.body}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="plates" aria-label="Plates" title="Plates" ${ex.weight.type === 'plates' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.plates}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="barbell" aria-label="Barbell" title="Barbell" ${ex.weight.type === 'barbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.barbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="dumbbell" aria-label="Dumbbell" title="Dumbbell" ${ex.weight.type === 'dumbbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.dumbbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="kettlebell" aria-label="Kettlebell" title="Kettlebell" ${ex.weight.type === 'kettlebell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.kettlebell}" alt="" aria-hidden="true"></span></label></div></div><div class="load-controls-row"><div class="weight-selector-container"><div id="weight-panel" class="weight-panel"></div></div><div class="rep-stamp-control"><div class="rep-wheel-field"><span class="field-label">Number</span>${numberWheel(
+    app.innerHTML = `<div class="session-head"><button class="back" id="form-back">‹</button><div><h1>${index === null ? 'Add exercise' : 'Edit exercise'}</h1><p>Build your session one movement at a time</p></div></div><form class="form-card${nameSaved ? ' name-saved' : ''}" id="form"><div class="field"><label for="name">Exercise name</label><div class="exercise-name-row" id="name-container">${nameSaved ? `<button id="name-label" class="locked-exercise-name" type="button" aria-label="Edit exercise name" title="Edit exercise name">${esc(ex.name)}</button>` : `<input id="name" class="text-input" list="exercise-suggestions" value="${esc(ex.name)}" placeholder="e.g. Goblet squat" required maxlength="60" autocomplete="off">`}<button class="name-lock-button note-button" id="edit-exercise-note" type="button" aria-label="Add exercise note" title="Add exercise note">🗒️</button></div></div><div class="exercise-controls"${nameSaved ? '' : ' hidden'}><div class="field"><span class="field-label">Load type</span><div class="load-selection-row"><div class="weight-types"><label class="weight-option"><input type="radio" name="type" value="body" aria-label="Body" title="Body" ${ex.weight.type === 'body' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.body}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="plates" aria-label="Plates" title="Plates" ${ex.weight.type === 'plates' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.plates}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="barbell" aria-label="Barbell" title="Barbell" ${ex.weight.type === 'barbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.barbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="dumbbell" aria-label="Dumbbell" title="Dumbbell" ${ex.weight.type === 'dumbbell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.dumbbell}" alt="" aria-hidden="true"></span></label><label class="weight-option"><input type="radio" name="type" value="kettlebell" aria-label="Kettlebell" title="Kettlebell" ${ex.weight.type === 'kettlebell' ? 'checked' : ''}><span><img class="weight-type-icon" src="${weightTypeIcons.kettlebell}" alt="" aria-hidden="true"></span></label></div></div><div class="load-controls-row"><div class="weight-selector-container"><div id="weight-panel" class="weight-panel"></div></div><div class="rep-stamp-control"><div class="rep-wheel-field"><span class="field-label">Number</span>${numberWheel(
       'set-reps',
       'Reps value',
       initialReps,
@@ -909,16 +909,20 @@
     }
     $('#form-back').onclick = returnToSession;
     $('#cancel').onclick = returnToSession;
-    $('#toggle-name-lock').onclick = (event) => {
-      const button = event.currentTarget;
+    function toggleExerciseName() {
       const input = $('#name', form);
       if (input) {
         const name = preferredExerciseName(input.value);
         if (!name) {
+          input.setCustomValidity('Enter an exercise name.');
           input.reportValidity();
+          input.oninput = () => input.setCustomValidity('');
           return;
         }
-        const label = document.createElement('span');
+        const label = document.createElement('button');
+        label.type = 'button';
+        label.setAttribute('aria-label', 'Edit exercise name');
+        label.title = 'Edit exercise name';
         label.id = 'name-label';
         label.className = 'locked-exercise-name';
         label.textContent = name;
@@ -930,9 +934,7 @@
         form.classList.add('name-saved');
         $('.exercise-controls', form).hidden = false;
         $('#done', form).hidden = false;
-        button.textContent = '✏️';
-        button.setAttribute('aria-label', 'Edit exercise name');
-        button.title = 'Edit exercise name';
+        label.focus();
       } else {
         const label = $('#name-label', form);
         const editable = document.createElement('input');
@@ -950,12 +952,19 @@
         $('#done', form).hidden = true;
         $('#exercise-history', form).hidden = true;
         updateWeightSuggestions('');
-        button.textContent = '💾';
-        button.setAttribute('aria-label', 'Save exercise name');
-        button.title = 'Save exercise name';
+
         editable.focus();
       }
-    };
+    }
+    $('#name-container').addEventListener('click', (event) => {
+      if (event.target.closest('#name-label')) toggleExerciseName();
+    });
+    $('#name-container').addEventListener('keydown', (event) => {
+      if (event.target.id === 'name' && event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault();
+        toggleExerciseName();
+      }
+    });
     function setupNumberWheel(
       id,
       values = Array.from({ length: 1000 }, (_, number) => number),
@@ -1285,6 +1294,10 @@
     };
     form.onsubmit = (e) => {
       e.preventDefault();
+      if ($('#name', form)) {
+        toggleExerciseName();
+        return;
+      }
       if (!form.reportValidity()) return;
       const weight = structuredClone(recordedSets.at(-1)?.weight ?? readWeight());
       const name = preferredExerciseName(
@@ -1456,7 +1469,7 @@
       location.hash = '';
       return;
     }
-    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(s.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div style="flex:1"><h3>${esc(e.name)}</h3>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div><div class="card-controls"><button class="small-action" data-saved-edit="${i}">Edit</button></div></article>`).join('')}</div>`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="saved-back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name">${esc(s.title)}</h1><button class="session-name-edit" id="edit-session-name" type="button" data-editing="false" aria-label="Edit session name" title="Edit session name">✎</button></div><p>${new Date(s.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p></div><button class="small-action delete session-actions" id="delete">Delete</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(s.startTime || '')}"></div><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(s.endTime || '')}"></div></div><div class="summary-card"><p>Session summary</p><b>${s.exercises.length} exercises</b><p>Logged ${new Date(s.date).toLocaleDateString()}</p></div><button class="scan-exercises saved-show-qr" id="saved-show-qr" type="button"><span aria-hidden="true">▦</span> Show QR</button><div class="exercise-list">${s.exercises.map((e, i) => `<article class="exercise-card"><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-saved-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></article>`).join('')}</div>`;
     bindSessionTimeInputs(s);
     bindSessionName(s, false);
     $('#saved-back').onclick = () => {
