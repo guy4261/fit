@@ -661,7 +661,13 @@ button {
   align-items: center;
   gap: 6px;
 }
+.session-name-row h1 {
+  flex: 1;
+  min-width: 0;
+}
 .session-name-label {
+  display: block;
+  width: 100%;
   border: 0;
   background: transparent;
   color: inherit;
@@ -670,7 +676,12 @@ button {
   font: inherit;
   letter-spacing: inherit;
   text-align: left;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-name-label[hidden] {
+  display: none;
 }
 .session-name-label:focus-visible {
   outline: 2px solid var(--ink);
@@ -679,6 +690,11 @@ button {
 .session-name-input {
   width: min(100%, 340px);
   min-width: 0;
+  font-size: 16px;
+}
+.session-head .session-start-field {
+  flex: 0 0 132px;
+  margin: 0;
 }
 .session-head p {
   margin: 4px 0 0;
