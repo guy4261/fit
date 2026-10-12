@@ -693,8 +693,12 @@ button {
   font-size: 16px;
 }
 .session-head .session-start-field {
-  flex: 0 0 132px;
+  flex: 0 0 96px;
   margin: 0;
+}
+.session-start-field .text-input {
+  min-width: 0;
+  padding-inline: 8px;
 }
 .session-head p {
   margin: 4px 0 0;
@@ -1162,19 +1166,14 @@ select:focus {
   width: 60px;
 }
 .reps-type-field {
-  width: 76px;
-  flex: 0 0 76px;
+  margin-bottom: 20px;
 }
 .reps-type-wheel {
-  display: block;
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 132px;
-  width: 76px;
+  display: flex;
+  overflow: hidden;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 16px;
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
   scrollbar-width: none;
 }
 .reps-type-wheel::-webkit-scrollbar {
@@ -1183,10 +1182,11 @@ select:focus {
 .reps-type-option {
   display: grid;
   height: 44px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   place-items: center;
   padding: 3px;
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   background: var(--white);
   color: var(--muted);
   font-size: 12px;
@@ -1196,7 +1196,7 @@ select:focus {
   cursor: pointer;
 }
 .reps-type-option:last-child {
-  border-bottom: 0;
+  border-right: 0;
 }
 .reps-type-option.is-selected {
   background: #edf3eb;
