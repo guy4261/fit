@@ -1,4 +1,4 @@
-const CACHE = 'fit24-v49';
+const CACHE = 'fit24-v50';
 const FILES = [
   './',
   './index.html',

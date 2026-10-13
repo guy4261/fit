@@ -855,8 +855,9 @@
           }
         : structuredClone(session.exercises[index]);
     ex.note = typeof ex.note === 'string' && ex.note.trim() ? ex.note : null;
+    const repsValues = Array.from({ length: 50 }, (_, number) => number + 1);
     const boundedReps = (value) =>
-      Math.min(50, Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 1));
+      Math.min(50, Math.max(1, Number.isFinite(Number(value)) ? Number(value) : 1));
     let recordedSets =
       index === null
         ? []
@@ -901,7 +902,7 @@
       'set-reps',
       'Reps value',
       initialReps,
-      Array.from({ length: 51 }, (_, number) => number),
+      repsValues,
     )}</div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'}>Done</button></div></form>`;
     const form = $('#form');
     const noteDialog = $('#exercise-note-dialog');
@@ -1079,7 +1080,7 @@
     }
     setupNumberWheel(
       'set-reps',
-      Array.from({ length: 51 }, (_, number) => number),
+      repsValues,
       () => updateWeightSuggestions(),
     );
     const recordedSetsElement = $('#recorded-sets', form);
@@ -1106,14 +1107,13 @@
       if (radio) radio.checked = true;
       panel();
       const repsWheel = $('#set-reps', form);
-      const repsValues = Array.from({ length: 51 }, (_, number) => number);
-      const repsValue = repsValues.includes(Number(set.reps)) ? Number(set.reps) : 0;
+      const repsValue = repsValues.includes(Number(set.reps)) ? Number(set.reps) : 1;
       repsWheel.dataset.value = String(repsValue);
       repsWheel.setAttribute('aria-valuenow', String(repsValue));
       repsWheel.setAttribute('aria-valuetext', String(repsValue));
       const repsViewport = $('.number-wheel-viewport', repsWheel);
       repsViewport.style.scrollBehavior = 'auto';
-      repsViewport.scrollTop = repsValue * 44;
+      repsViewport.scrollTop = repsValues.indexOf(repsValue) * 44;
       repsViewport.dispatchEvent(new Event('scroll'));
       repsViewport.style.removeProperty('scroll-behavior');
       renderRecordedSets();
