@@ -106,8 +106,21 @@ const assert = require('node:assert/strict');
         await page.evaluate(() => sessionStorage.getItem('update-message')),
         'SKIP_WAITING',
       );
+      await page.goto('http://fit.test' + url);
+      const newSession = page.locator('header #new-session');
+      assert.equal(await newSession.getAttribute('aria-label'), 'Start new session');
+      await newSession.click();
+      await page.locator('#add').waitFor();
+      assert.equal(await page.locator('#exercise-list .exercise-card').count(), 0);
+      await page.locator('#add').click();
+      await page.locator('header #new-session').click();
+      assert.equal(await page.locator('#add').isVisible(), true);
+      assert.ok(
+        await page.locator('header').evaluate((el) => el.scrollWidth <= el.clientWidth),
+        'Header with new-session action must fit a 320px phone',
+      );
       console.log(
-        `PASS: ${url} header placement, monochrome design, phone layout, failure recovery and update reload`,
+        `PASS: ${url} header placement, phone layout, update reload and new session from page and exercise form`,
       );
     }
     assert.deepEqual(errors, [], 'Screens should initialize without script errors');

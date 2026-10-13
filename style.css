@@ -143,6 +143,12 @@ button {
 .icon-button:hover {
   background: #eae9e1;
 }
+.new-session-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 .update-button {
   color: #000;
   background: #fff;
@@ -180,7 +186,7 @@ button {
     gap: 0;
   }
   .topbar .icon-button {
-    min-width: 38px;
+    min-width: 34px;
   }
 }
 .share-icon {
@@ -385,6 +391,9 @@ button {
   color: var(--muted);
 }
 .achievements-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 16px 0 24px;
 }
 .achievements-head h1 {
@@ -396,82 +405,111 @@ button {
   max-width: 520px;
   line-height: 1.5;
 }
-.achievement-list {
-  display: grid;
-  gap: 12px;
-}
-.achievement-card {
-  padding: 17px;
-  border: 1px solid var(--line);
-  border-radius: 17px;
-  background: var(--white);
-}
-.achievement-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.achievement-title h2 {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.035em;
-}
-.achievement-record,
-.achievement-latest {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 3px 10px;
-  padding: 11px 12px;
-  border-radius: 12px;
-  background: #f5f5ef;
-}
-.achievement-record > span,
-.achievement-latest > span,
-.one-rm-values span {
-  color: var(--muted);
+.achievements-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
   font-size: 12px;
+  margin-bottom: 90px;
 }
-.achievement-record > b,
-.achievement-latest > b {
-  text-align: right;
-  font-size: 14px;
+.achievements-table th,
+.achievements-table td {
+  padding: 10px 5px;
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--line);
 }
-.achievement-record > small,
-.achievement-latest > small {
-  grid-column: 1 / -1;
-  color: var(--muted);
+.achievements-table thead th {
   font-size: 11px;
+  color: var(--muted);
 }
-.achievement-latest {
-  margin-top: 7px;
-  background: transparent;
-  border: 1px solid var(--line);
+.achievements-table th:first-child {
+  width: 29%;
 }
-.one-rm-values {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 12px;
+.achievements-table th:nth-child(2) {
+  width: 27%;
 }
-.one-rm-values > div {
+.achievements-table th:nth-child(3) {
+  width: 17%;
+}
+.achievements-table th:nth-child(4) {
+  width: 27%;
+}
+.achievements-table thead small {
+  display: block;
+  margin-top: 4px;
+  font-weight: normal;
+}
+.achievements-table tbody tr {
+  background: #edf5ef;
+  cursor: pointer;
+}
+.achievements-table tbody tr[data-view='latest'] {
+  background: #edf1fa;
+}
+.achievement-toggle {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
-  padding: 10px 12px;
-  border-radius: 11px;
-  background: var(--mint);
+  min-height: 44px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.one-rm-values b {
-  color: var(--green);
-  font-size: 15px;
+.achievement-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
-.achievement-note {
-  margin: 8px 2px 0;
+.achievement-mode {
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.achievements-legend {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 716px);
+  z-index: 9;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  padding: 12px 10px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 12px;
+}
+.achievements-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.achievements-legend i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #879c8b;
+  border-radius: 3px;
+}
+.top-swatch {
+  background: #edf5ef;
+}
+.latest-swatch {
+  background: #edf1fa;
+}
+.achievements-legend small {
+  flex-basis: 100%;
+  text-align: center;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
 }
 .exercise-count-controls {
   display: inline-flex;

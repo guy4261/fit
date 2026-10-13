@@ -575,12 +575,13 @@
         const name = String(exercise.name || '').trim();
         if (!name) return;
         const key = name.toLocaleLowerCase();
-        if (!exerciseMap.has(key)) exerciseMap.set(key, { name, entries: [] });
         const setEntries = Array.isArray(exercise.setEntries)
           ? exercise.setEntries
           : [{ weight: exercise.weight || { type: 'body' }, reps: exercise.reps }];
         setEntries.forEach((set) => {
           const weight = set.weight || exercise.weight || { type: 'body' };
+          if (weight.type === 'body') return;
+          if (!exerciseMap.has(key)) exerciseMap.set(key, { name, entries: [] });
           exerciseMap.get(key).entries.push({
             session,
             exercise,
@@ -618,24 +619,43 @@
         return { ...group, record, latest: group.entries.at(-1) };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-    app.innerHTML = `<div class="achievements-head"><div><p class="eyebrow">Your progress</p><h1>High Score</h1><p class="muted">Personal records and estimated one-rep maxes from your training history.</p></div></div>${
+    const rowCells = (group, latestView) => {
+      const entry = latestView ? group.latest : group.record;
+      const mode = latestView ? 'Latest' : 'Top';
+      const recommendation =
+        entry.weightType === 'body'
+          ? 'Body weight'
+          : `${(entry.weight * (1 + entry.reps / 30)).toFixed(1)} kg`;
+      return `<th scope="row">${esc(group.name)}</th><td><button class="achievement-toggle" type="button" aria-pressed="${latestView}" aria-label="${esc(group.name)}: ${mode}. Show ${latestView ? 'all-time top' : 'latest'}"><span class="achievement-mode">${mode}</span><span>${esc(weightText(entry))} × ${entry.reps}</span></button></td><td>${esc(daysAgo(entry.session.date))}</td><td>${esc(recommendation)}</td>`;
+    };
+    app.innerHTML = `<div class="achievements-head"><h1>Achievements</h1><button class="icon-button update-button" id="recalculate-achievements" type="button" aria-label="Recalculate achievements" title="Recalculate achievements"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10a8 8 0 1 0-1.5 7M20 4v6h-6" /></svg></button></div>${
       entries.length
-        ? `<div class="achievement-list">${entries
-            .map(({ name, entries: records, record, latest }) => {
-              const hasRepeat = records.length > 1;
-              const epley = record.weight * (1 + record.reps / 30);
-              const brzycki =
-                record.reps < 37 ? (record.weight * 36) / (37 - record.reps) : null;
-              const estimates =
-                record.weightType === 'body'
-                  ? '<p class="achievement-note">Body-weight exercises do not have a loaded-weight 1RM estimate.</p>'
-                  : `<div class="one-rm-values"><div><span>Epley 1RM</span><b>${epley.toFixed(1)} kg</b></div><div><span>Brzycki 1RM</span><b>${brzycki === null ? '—' : `${brzycki.toFixed(1)} kg`}</b></div></div><p class="achievement-note">Estimated from ${weightText(record)} × ${record.reps} reps.</p>`;
-              return `<article class="achievement-card"><div class="achievement-title"><h2>${esc(name)}</h2></div><div class="achievement-record"><span>Highest weight</span><b>${esc(weightText(record))}</b><small>${esc(daysAgo(record.session.date))} · ${record.reps} rep${record.reps === 1 ? '' : 's'}</small></div>${hasRepeat ? `<div class="achievement-latest"><span>Last performed</span><b>${esc(weightText(latest))}</b><small>${esc(daysAgo(latest.session.date))}</small></div>` : ''}${estimates}</article>`;
-            })
-            .join('')}</div>`
+        ? `<table class="achievements-table"><caption class="visually-hidden">Exercise records. Tap a row to switch between all-time top and latest performance. 1RM is estimated one-rep maximum using Epley.</caption><thead><tr><th scope="col">Name</th><th scope="col">Top/Latest</th><th scope="col">Days Ago</th><th scope="col">1RM</th></tr></thead><tbody>${entries
+            .map(
+              (group, index) =>
+                `<tr data-achievement="${index}" data-view="top">${rowCells(group, false)}</tr>`,
+            )
+            .join(
+              '',
+            )}</tbody></table><div class="achievements-legend" aria-label="Achievement modes"><span><i class="top-swatch" aria-hidden="true"></i>Top · all time</span><span><i class="latest-swatch" aria-hidden="true"></i>Latest · last set</span><small>Tap a row to switch</small></div>`
         : '<div class="empty"><div class="empty-icon">🏆</div><b>No achievements yet</b>Your exercise records will appear here after you finish a session.</div>'
     }`;
+    $('#recalculate-achievements').onclick = () => {
+      data = read();
+      renderAchievements();
+      $('#recalculate-achievements').focus();
+    };
+    app.querySelectorAll('[data-achievement]').forEach((row) => {
+      row.onclick = () => {
+        const focused = document.activeElement === row.querySelector('button');
+        const latestView = row.dataset.view !== 'latest';
+        row.dataset.view = latestView ? 'latest' : 'top';
+        row.innerHTML = rowCells(entries[Number(row.dataset.achievement)], latestView);
+        if (focused) row.querySelector('button').focus();
+      };
+    });
   }
+
   function startSession() {
     const date = new Date().toISOString();
     active = {
@@ -648,6 +668,17 @@
     };
     reorderMode = false;
     renderActive();
+  }
+  if (app) {
+    $('#new-session').onclick = (event) => {
+      event.preventDefault();
+      if (
+        active?.exercises.length &&
+        !confirm('Leave this session? It has not been saved.')
+      )
+        return;
+      startSession();
+    };
   }
   function renderActive() {
     renderSession(active);
