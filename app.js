@@ -1398,6 +1398,7 @@
     active = null;
     location.hash = '#home';
     renderHome();
+    window.fit24Install?.suggestAfterSession();
   }
   const scanDialog = $('#scan-dialog');
   let scanLibraryPromise = null;

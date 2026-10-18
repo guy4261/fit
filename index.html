@@ -21,6 +21,7 @@
     </script>
     <script src="exercise-photo.js" defer></script>
     <script src="update-app.js" defer></script>
+    <script src="install-app.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -104,6 +105,9 @@
         <button class="icon-button" id="close-dialog" aria-label="Close">×</button>
       </div>
       <p class="muted">Your training log stays on this device.</p>
+      <button class="menu-action" id="install-app" type="button">
+        ＋ <span><b>Add to home screen</b><small>Keep fit24 one tap away</small></span>
+      </button>
       <button class="menu-action" id="copy-json" type="button">
         ⧉ <span><b>Copy to clipboard</b><small>Copy the JSON backup</small></span>
       </button>
@@ -174,5 +178,16 @@
       </form>
     </dialog>
     <datalist id="exercise-suggestions"></datalist>
+    <dialog id="install-dialog" class="data-dialog" aria-labelledby="install-title">
+      <div class="dialog-head">
+        <h2 id="install-title">Add fit24 to your home screen</h2>
+        <button class="icon-button" id="close-install" aria-label="Close">×</button>
+      </div>
+      <p id="install-instructions" class="muted"></p>
+      <button id="confirm-install" class="primary" type="button" hidden>
+        Add to home screen
+      </button>
+      <p id="install-status" class="status" role="status"></p>
+    </dialog>
   </body>
 </html>

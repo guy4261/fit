@@ -17,6 +17,7 @@
     <link rel="apple-touch-icon" href="favicon.png" />
     <link rel="stylesheet" href="style.css" />
     <script src="update-app.js" defer></script>
+    <script src="install-app.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -110,6 +111,15 @@
         or ask me for changes (if you don't know me in real life - too bad
         <code>:)</code>).
       </p>
+      <p>
+        Enjoying fit24? Leave a tip in the
+        <a
+          href="https://links.payboxapp.com/9vqzsSsvk7b"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Tip Jar</a
+        >.
+      </p>
       <section class="about-qr" aria-labelledby="about-qr-title">
         <h2 id="about-qr-title">Share fit24</h2>
         <p>Scan this QR code to open fit24.</p>
@@ -129,6 +139,9 @@
         <button class="icon-button" id="close-dialog" aria-label="Close">×</button>
       </div>
       <p class="muted">Your training log stays on this device.</p>
+      <button class="menu-action" id="install-app" type="button">
+        ＋ <span><b>Add to home screen</b><small>Keep fit24 one tap away</small></span>
+      </button>
       <button class="menu-action" id="copy-json" type="button">
         ⧉ <span><b>Copy to clipboard</b><small>Copy the JSON backup</small></span>
       </button>
@@ -152,6 +165,17 @@
       </label>
       <p class="dialog-note">Importing a backup replaces your saved sessions.</p>
       <p id="dialog-status" class="status" role="status"></p>
+    </dialog>
+    <dialog id="install-dialog" class="data-dialog" aria-labelledby="install-title">
+      <div class="dialog-head">
+        <h2 id="install-title">Add fit24 to your home screen</h2>
+        <button class="icon-button" id="close-install" aria-label="Close">×</button>
+      </div>
+      <p id="install-instructions" class="muted"></p>
+      <button id="confirm-install" class="primary" type="button" hidden>
+        Add to home screen
+      </button>
+      <p id="install-status" class="status" role="status"></p>
     </dialog>
   </body>
 </html>

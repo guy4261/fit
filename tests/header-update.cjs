@@ -60,7 +60,7 @@ const assert = require('node:assert/strict');
       );
       await page.locator('#menu-button').click();
       assert.equal(await page.locator('#data-dialog').isVisible(), true);
-      assert.equal(await page.locator('#data-dialog .menu-action').count(), 4);
+      assert.equal(await page.locator('#data-dialog .menu-action').count(), 5);
       assert.equal(await page.locator('#share-app').count(), 0);
       if (url === '/about.html') {
         await page.locator('#import-file').setInputFiles({

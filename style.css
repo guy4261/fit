@@ -2098,3 +2098,9 @@ dialog.live-scan-dialog.is-reviewing {
     grid-row: 3;
   }
 }
+.pull-refresh-status {
+  text-align: center;
+  color: #666;
+  font-size: 0.875rem;
+  margin: 12px auto;
+}
