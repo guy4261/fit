@@ -2104,3 +2104,97 @@ dialog.live-scan-dialog.is-reviewing {
   font-size: 0.875rem;
   margin: 12px auto;
 }
+
+.epley-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.epley-inputs label {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 180px;
+  font-weight: 600;
+}
+.epley-inputs input,
+.epley-inputs select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+}
+.epley-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  font-size: 15px;
+  fill: var(--ink);
+}
+.epley-grid {
+  stroke: var(--line);
+}
+.epley-axis {
+  stroke: var(--ink);
+  fill: none;
+}
+.epley-curve {
+  stroke: var(--green);
+  stroke-width: 3;
+  fill: none;
+}
+.epley-point {
+  fill: var(--green);
+}
+.epley-point.is-entered {
+  fill: var(--lime);
+  stroke: var(--green);
+  stroke-width: 3;
+}
+.epley-chart-wrap {
+  position: relative;
+}
+.epley-target {
+  cursor: pointer;
+}
+.epley-target.is-entered {
+  cursor: grab;
+  touch-action: none;
+}
+.epley-target.is-entered:active {
+  cursor: grabbing;
+}
+.epley-target:focus-visible .epley-point {
+  stroke: var(--ink);
+  stroke-width: 4;
+}
+.epley-hit {
+  fill: transparent;
+}
+.epley-tooltip {
+  position: absolute;
+  z-index: 1;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--green);
+  color: var(--white);
+  white-space: nowrap;
+  box-shadow: 0 3px 12px #0003;
+}
+.epley-tooltip[hidden] {
+  display: none;
+}
+
+.epley-history {
+  margin-bottom: 20px;
+}
+.epley-inputs select:disabled {
+  opacity: 0.6;
+}

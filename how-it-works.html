@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f6f4ef" />
+    <meta
+      name="description"
+      content="Explore the Epley formula with your own repetitions and weight."
+    />
+    <title>About — fit24</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="favicon.png" type="image/png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="favicon.png" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="update-app.js" defer></script>
+    <script src="install-app.js" defer></script>
+    <script src="app.js" defer></script>
+    <script src="how-it-works.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="index.html#home" aria-label="fit24 home"
+        ><img class="brand-mark" src="favicon.png" alt="" /> fit24</a
+      >
+      <nav class="topbar-actions" aria-label="App links">
+        <a
+          class="icon-button new-session-link"
+          id="new-session"
+          href="index.html#new"
+          aria-label="Start new session"
+          title="Start new session"
+          ><span aria-hidden="true">+</span></a
+        >
+        <button
+          class="icon-button update-button"
+          id="refresh-app"
+          type="button"
+          aria-label="Check for updates"
+          title="Check for updates"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 10a8 8 0 1 0-1.5 7M20 4v6h-6" />
+          </svg>
+        </button>
+        <a
+          class="icon-button history-link"
+          href="index.html#home"
+          aria-label="Training history"
+          title="Training history"
+          ><svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 3.5h12a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"
+            />
+            <path d="M9 3.5v17M12 8h4m-4 4h4m-4 4h4" /></svg
+        ></a>
+        <a
+          class="icon-button achievements-link"
+          href="index.html#achievements"
+          aria-label="High Score and Achievements"
+          title="High Score / Achievements"
+          ><svg class="trophy-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M8 4h8v4.5a4 4 0 0 1-8 0V4ZM8 6H5v2a3 3 0 0 0 3 3m8-5h3v2a3 3 0 0 1-3 3m-4 1v4m-4 4h8m-7-4h6l1 4H8l1-4Z"
+            /></svg
+        ></a>
+        <a
+          class="icon-button help-link"
+          href="about.html"
+          aria-label="About"
+          title="About"
+          >?</a
+        >
+        <button
+          class="icon-button"
+          id="menu-button"
+          type="button"
+          aria-label="Data and settings"
+          title="Data and settings"
+        >
+          <img class="share-icon" src="icons/share.svg" alt="" />
+        </button>
+      </nav>
+    </header>
+    <p id="update-status" class="update-status" role="status" hidden></p>
+    <main class="app-shell about-content">
+      <a href="about.html">Back to About</a>
+      <div class="eyebrow">EPLEY FORMULA</div>
+      <h1>How do it work?</h1>
+      <p>Enter a set to see the estimated weight you could lift for 1–25 repetitions.</p>
+      <div class="epley-inputs epley-history">
+        <label for="epley-exercise"
+          >Exercise from history
+          <select id="epley-exercise">
+            <option value="">Choose an exercise</option>
+          </select>
+        </label>
+        <label for="epley-set"
+          >Performed set
+          <select id="epley-set" disabled>
+            <option value="">Choose an exercise first</option>
+          </select>
+        </label>
+      </div>
+      <p id="epley-history-status" role="status" hidden></p>
+      <div class="epley-inputs">
+        <label for="epley-reps"
+          >Repetitions
+          <input
+            id="epley-reps"
+            value="10"
+            type="number"
+            min="1"
+            max="25"
+            step="1"
+            inputmode="numeric"
+            placeholder="e.g. 10"
+          />
+        </label>
+        <label for="epley-weight"
+          >Weight (kg)
+          <input
+            id="epley-weight"
+            value="60"
+            type="number"
+            min="0"
+            step="any"
+            inputmode="decimal"
+            placeholder="e.g. 60"
+          />
+        </label>
+      </div>
+      <p id="epley-status" role="status">
+        Enter repetitions (1–25) and a weight greater than zero.
+      </p>
+      <section id="epley-result" hidden aria-label="Epley estimate">
+        <p id="epley-summary"></p>
+        <div class="epley-chart-wrap">
+          <button
+            id="epley-tooltip"
+            class="epley-tooltip"
+            type="button"
+            hidden
+            aria-label="Close point details"
+          ></button>
+          <svg
+            id="epley-chart"
+            class="epley-chart"
+            viewBox="0 0 640 400"
+            role="img"
+            aria-labelledby="epley-chart-title epley-chart-description"
+          ></svg>
+        </div>
+        <p>
+          Tap a point to see its reps and weight. Drag the highlighted point to change
+          your entered set. At 1 repetition, the plot shows your estimated one-rep maximum
+          (1RM).
+        </p>
+        <p>
+          1RM = weight – (1 + reps / 30). For 2–25 reps, estimated weight = 1RM – (1 +
+          reps / 30). A one-rep input is used directly as your 1RM.
+        </p>
+      </section>
+    </main>
+    <dialog id="data-dialog" class="data-dialog">
+      <div class="dialog-head">
+        <h2>Your data</h2>
+        <button class="icon-button" id="close-dialog" aria-label="Close">×</button>
+      </div>
+      <p class="muted">Your training log stays on this device.</p>
+      <button class="menu-action" id="install-app" type="button">
+        ＋ <span><b>Add to home screen</b><small>Keep fit24 one tap away</small></span>
+      </button>
+      <button class="menu-action" id="copy-json" type="button">
+        ⧉ <span><b>Copy to clipboard</b><small>Copy the JSON backup</small></span>
+      </button>
+      <button class="menu-action" id="paste-json" type="button">
+        ⇩
+        <span
+          ><b>Paste from clipboard</b
+          ><small>Replace saved sessions with valid backup data</small></span
+        >
+      </button>
+      <button class="menu-action" id="export-json" type="button">
+        ⇧ <span><b>Save to file</b><small>Save or share a JSON backup</small></span>
+      </button>
+      <label class="menu-action file-action">
+        ⇧
+        <span
+          ><b>Load from file</b
+          ><small>Replace saved sessions from a JSON backup</small></span
+        >
+        <input id="import-file" type="file" accept="application/json,.json" />
+      </label>
+      <p class="dialog-note">Importing a backup replaces your saved sessions.</p>
+      <p id="dialog-status" class="status" role="status"></p>
+    </dialog>
+    <dialog id="install-dialog" class="data-dialog" aria-labelledby="install-title">
+      <div class="dialog-head">
+        <h2 id="install-title">Add fit24 to your home screen</h2>
+        <button class="icon-button" id="close-install" aria-label="Close">×</button>
+      </div>
+      <p id="install-instructions" class="muted"></p>
+      <button id="confirm-install" class="primary" type="button" hidden>
+        Add to home screen
+      </button>
+      <p id="install-status" class="status" role="status"></p>
+    </dialog>
+  </body>
+</html>
