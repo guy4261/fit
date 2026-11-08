@@ -23,6 +23,7 @@
     <script src="update-app.js" defer></script>
     <script src="install-app.js" defer></script>
     <script src="app.js" defer></script>
+    <script src="auth.js" defer></script>
   </head>
   <body>
     <div
@@ -96,6 +97,10 @@
           <img class="share-icon" src="icons/share.svg" alt="" />
         </button>
       </nav>
+      <div class="account-bar">
+        <span id="account-status" role="status">Checking sign-in…</span>
+        <button id="account-button" type="button" disabled>Sign in with Google</button>
+      </div>
     </header>
     <p id="update-status" class="update-status" role="status" hidden></p>
     <main id="app" class="app-shell" aria-live="polite"></main>

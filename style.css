@@ -102,7 +102,7 @@ button {
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 64px;
+  min-height: 64px;
   max-width: 760px;
   margin: auto;
   padding: 0 22px;
@@ -110,6 +110,36 @@ button {
   align-items: center;
   justify-content: space-between;
   background: var(--paper);
+  flex-wrap: wrap;
+  padding-block: 8px;
+}
+.account-bar {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+#account-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#account-button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+#account-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .topbar-actions {
   display: flex;
