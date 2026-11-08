@@ -1,6 +1,10 @@
 (() => {
   const button = document.querySelector('#account-button');
   const status = document.querySelector('#account-status');
+  const backupActions = document.querySelector('#backup-actions');
+  const saveButton = document.querySelector('#cloud-save');
+  const restoreButton = document.querySelector('#cloud-restore');
+  const tooltip = document.querySelector('#backup-tooltip');
   const cloudMessage = document.querySelector('#cloud-message');
   const supabaseUrl = document.querySelector('meta[name="supabase-url"]').content;
   const publishableKey = document.querySelector('meta[name="supabase-publishable-key"]').content;
@@ -8,6 +12,73 @@
   const sdkUrl = 'https://cdn.auth0.com/js/auth0-spa-js/2.30/auth0-spa-js.production.js';
   let client;
   let user;
+  let tooltipTimer;
+
+  function hideBackupResult() {
+    clearTimeout(tooltipTimer);
+    tooltip.hidden = true;
+  }
+
+  function showBackupResult(message) {
+    hideBackupResult();
+    tooltip.hidden = false;
+    tooltip.querySelector('[role="status"]').textContent = message;
+    tooltipTimer = setTimeout(hideBackupResult, 4000);
+  }
+
+  tooltip.querySelector('button').addEventListener('click', hideBackupResult);
+
+  async function runBackup(save) {
+    if (!user || saveButton.disabled) return;
+    const confirmed = window.confirm(save
+      ? 'Save this device’s training data to your account? This replaces your previous cloud backup.'
+      : 'Restore your cloud backup? This replaces the training sessions on this device.');
+    if (!confirmed) return;
+
+    hideBackupResult();
+    button.disabled = saveButton.disabled = restoreButton.disabled = true;
+    try {
+      const claims = await client.getIdTokenClaims();
+      if (!claims?.__raw || claims.sub !== user.sub) throw new Error('Missing account token');
+
+      const url = new URL('/rest/v1/fit24_backups', supabaseUrl);
+      const headers = {
+        apikey: publishableKey,
+        Authorization: 'Bearer ' + claims.__raw,
+      };
+      const options = { headers, cache: 'no-store' };
+      if (save) {
+        headers['Content-Type'] = 'application/json';
+        headers.Prefer = 'resolution=merge-duplicates,return=minimal';
+        options.method = 'POST';
+        options.body = JSON.stringify({
+          owner_sub: claims.sub,
+          backup: JSON.parse(window.fit24Backup.exportJson()),
+        });
+      } else {
+        url.searchParams.set('select', 'backup');
+        url.searchParams.set('owner_sub', 'eq.' + claims.sub);
+      }
+      const response = await fetch(url, options);
+      if (!response.ok) throw new Error('Cloud backup request failed');
+      if (!save) {
+        const [row] = await response.json();
+        if (!row) {
+          showBackupResult('No cloud backup found for this account.');
+          return;
+        }
+        window.fit24Backup.restoreJson(JSON.stringify(row.backup));
+      }
+      showBackupResult(save ? 'Cloud backup saved.' : 'Cloud backup restored.');
+    } catch {
+      showBackupResult(save ? 'Could not save the cloud backup.' : 'Could not restore the cloud backup.');
+    } finally {
+      button.disabled = saveButton.disabled = restoreButton.disabled = false;
+    }
+  }
+
+  saveButton.addEventListener('click', () => runBackup(true));
+  restoreButton.addEventListener('click', () => runBackup(false));
 
   function showStatus(message) {
     status.textContent = message;
@@ -85,6 +156,7 @@
       throw new Error('A Google account is required.');
     }
     user = profile;
+    backupActions.hidden = !user;
     button.textContent = user ? 'Sign out' : 'Sign in with Google';
     showStatus(user ? 'Signed in as ' + (user.email || user.name || 'Google user') : 'Signed out');
     if (user) void loadCloudMessage();
@@ -95,6 +167,8 @@
     try {
       if (!client) await initialize();
       if (user) {
+        backupActions.hidden = true;
+        hideBackupResult();
         cloudMessage.hidden = true;
         cloudMessage.textContent = '';
         await client.logout({ logoutParams: { returnTo: appUrl } });
@@ -104,6 +178,7 @@
         });
       }
     } catch {
+      backupActions.hidden = !user;
       showStatus(user ? 'Could not sign out. Try again.' : 'Could not sign in. Try again.');
       button.disabled = false;
     }

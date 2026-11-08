@@ -1615,8 +1615,7 @@
     )
       throw new Error('This does not look like a valid fit24 backup.');
     const importedSessions = parsed.sessions.map(migrateSession);
-    data.sessions = importedSessions;
-    data.names = [
+    const names = [
       ...new Map(
         [
           ...STANDARD_EXERCISES,
@@ -1631,10 +1630,13 @@
         }),
       ).values(),
     ];
-    save();
+    const importedData = { ...data, sessions: importedSessions, names };
+    localStorage.setItem(KEY, JSON.stringify(importedData));
+    data = importedData;
     $('#dialog-status').textContent = `Imported ${importedSessions.length} sessions.`;
     if (app) renderHome();
   }
+  window.fit24Backup = { exportJson: backupJson, restoreJson: importBackupText };
   $('#export-json').onclick = async () => {
     const filename = `fit24-training-${new Date().toISOString().slice(0, 10)}.json`;
     const blob = new Blob([backupJson()], { type: 'application/json' });

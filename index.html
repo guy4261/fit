@@ -102,6 +102,14 @@
       <div class="account-bar">
         <span id="account-status" role="status">Checking sign-in…</span>
         <button id="account-button" type="button" disabled>Sign in with Google</button>
+        <div id="backup-actions" hidden>
+          <button id="cloud-save" type="button">Save</button>
+          <button id="cloud-restore" type="button">Restore</button>
+        </div>
+        <div id="backup-tooltip" hidden>
+          <span role="status"></span>
+          <button type="button" aria-label="Dismiss backup message">×</button>
+        </div>
       </div>
     </header>
     <p id="update-status" class="update-status" role="status" hidden></p>

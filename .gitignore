@@ -4,3 +4,5 @@ deliverables/
 .codex-finalizer/
 tmp/
 tests/recordings/
+*.sql
+
