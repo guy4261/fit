@@ -1312,13 +1312,15 @@ select:focus {
   outline-offset: 2px;
 }
 .recorded-set b {
+  padding-right: 20px;
   font-size: 12px;
 }
 .recorded-set small {
   color: var(--muted);
   font-size: 11px;
 }
-.set-delete {
+.set-delete,
+.set-duplicate {
   position: absolute;
   top: 3px;
   left: 4px;
@@ -1331,6 +1333,12 @@ select:focus {
   color: #842b28;
   font-size: 17px;
   line-height: 1;
+}
+.set-duplicate {
+  right: 4px;
+  left: auto;
+  background: #edf3ec;
+  color: var(--green);
 }
 .weight-option input:checked + span {
   background: var(--green);

@@ -304,7 +304,7 @@
   function defaultSessionName(date) {
     return sessionTitle(date);
   }
-  function bindSessionName(session, isActive) {
+  function bindSessionName(session) {
     const label = $('#session-name-label');
     if (!label) return;
     label.onclick = () => {
@@ -315,7 +315,13 @@
       input.value = session.title;
       input.maxLength = 100;
       input.setAttribute('aria-label', 'Session name');
-      input.oninput = () => input.setCustomValidity('');
+      input.oninput = () => {
+        input.setCustomValidity('');
+        if (input.value.trim()) {
+          session.title = input.value.trim();
+          save();
+        }
+      };
       let nameSaved = false;
       const saveName = (focusLabel = false) => {
         if (nameSaved) return;
@@ -328,7 +334,7 @@
         }
         nameSaved = true;
         session.title = title;
-        if (!isActive) save();
+        save();
         label.textContent = title;
         label.title = `${title} — Edit session name`;
         label.hidden = false;
@@ -359,7 +365,7 @@
   function bindSessionTimeInputs(session) {
     const startInput = $('#session-start-time');
     const endInput = $('#session-end-time');
-    if (!startInput || !endInput) return () => true;
+    if (!startInput || !endInput) return;
     const refresh = () => {
       endInput.min = startInput.value;
       endInput.setCustomValidity(
@@ -372,17 +378,13 @@
       refresh();
       session.startTime = startInput.value;
       session.endTime = endInput.value;
-      if (session !== active && endInput.checkValidity()) save();
+      save();
     };
     startInput.addEventListener('input', synchronize);
     startInput.addEventListener('change', synchronize);
     endInput.addEventListener('input', synchronize);
     endInput.addEventListener('change', synchronize);
     refresh();
-    return () => {
-      synchronize();
-      return endInput.reportValidity();
-    };
   }
   function exercisePerformances(name) {
     name = preferredExerciseName(name);
@@ -502,7 +504,7 @@
               return `<div class="session-row"><label class="session-select" aria-label="Select ${esc(s.title)}"><input type="checkbox" data-session-select="${esc(s.id)}"><span class="visually-hidden">Select session</span></label><a href="#session/${encodeURIComponent(s.id)}" class="session-link"><span class="session-date"><b>${d.getDate()}</b><small>${d.toLocaleString(undefined, { month: 'short' })}</small><small class="session-year">${d.getFullYear()}</small></span><span class="session-info"><b>${esc(s.title)}</b><small>${s.exercises.length} exercises</small></span></a><button type="button" class="session-delete" data-session-delete="${esc(s.id)}" aria-label="Delete ${esc(s.title)}" title="Delete session">Delete</button></div>`;
             })
             .join('')}</div>`
-        : `<div class="empty"><div class="empty-icon">🏋️</div><b>Your first session starts here</b>Your training history will show up after you finish a session.</div>`
+        : `<div class="empty"><div class="empty-icon">🏋️</div><b>Your first session starts here</b>Your session will appear here as soon as you start it.</div>`
     }<footer class="build-info" data-build-info aria-label="App build" role="status">Loading build information…</footer>`;
     showBuildInfo($('[data-build-info]'));
     $('#start').onclick = () => {
@@ -638,7 +640,7 @@
             .join(
               '',
             )}</tbody></table><div class="achievements-legend" aria-label="Achievement modes"><span><i class="top-swatch" aria-hidden="true"></i>Top · all time</span><span><i class="latest-swatch" aria-hidden="true"></i>Latest · last set</span><small>Tap a row to switch</small></div>`
-        : '<div class="empty"><div class="empty-icon">🏆</div><b>No achievements yet</b>Your exercise records will appear here after you finish a session.</div>'
+        : '<div class="empty"><div class="empty-icon">🏆</div><b>No achievements yet</b>Your exercise records will appear here after you record sets.</div>'
     }`;
     $('#recalculate-achievements').onclick = () => {
       data = read();
@@ -666,17 +668,14 @@
       endTime: '',
       exercises: [],
     };
+    data.sessions.push(active);
+    save();
     reorderMode = false;
     renderActive();
   }
   if (app) {
     $('#new-session').onclick = (event) => {
       event.preventDefault();
-      if (
-        active?.exercises.length &&
-        !confirm('Leave this session? It has not been saved.')
-      )
-        return;
       startSession();
     };
   }
@@ -684,28 +683,14 @@
     renderSession(active);
   }
   function renderSession(session) {
-    const isSaved = data.sessions.includes(session);
-    if (isSaved) save();
+    save();
     const canReorder = session.exercises.length > 0;
     app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="${esc(session.title)} — Edit session name">${esc(session.title)}</button></h1></div><p>${session.exercises.length} exercises</p></div><div class="field session-start-field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(session.startTime || '')}"></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(session.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${session.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${session.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${session.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
-    const validateTimes = bindSessionTimeInputs(session);
-    bindSessionName(session, !isSaved);
+    bindSessionTimeInputs(session);
+    bindSessionName(session);
     $('#back').onclick = () => {
-      if (isSaved) {
-        if (!validateTimes()) return;
-        save();
-        location.hash = '#home';
-        renderHome();
-        return;
-      }
-      if (
-        !session.exercises.length ||
-        confirm('Leave this session? It has not been saved.')
-      ) {
-        active = null;
-        location.hash = '#home';
-        renderHome();
-      }
+      location.hash = '#home';
+      renderHome();
     };
     $('#reorder').onclick = () => {
       reorderMode = !reorderMode;
@@ -767,8 +752,8 @@
       session.exercises.push(session.exercises.shift());
       renderSession(session);
     });
-    $('#finish').onclick = () => finish(session, validateTimes);
-    $('#finish-bottom')?.addEventListener('click', () => finish(session, validateTimes));
+    $('#finish').onclick = finish;
+    $('#finish-bottom')?.addEventListener('click', finish);
     if (reorderMode) {
       const list = $('#exercise-list');
       let pointerDraggedIndex = null;
@@ -875,10 +860,14 @@
     recordedSets.forEach((set) => {
       if (!REPS_TYPES.includes(set.reps_type)) set.reps_type = 'Reps';
     });
-    let selectedSetIndex = -1;
+    const setDraft = ex.setDraft;
+    let selectedSetIndex = recordedSets[setDraft?.selectedSetIndex]
+      ? setDraft.selectedSetIndex
+      : -1;
+    if (setDraft?.weight) ex.weight = setDraft.weight;
     let loadDefaultName = index === null ? null : ex.name;
-    const initialReps = 1;
-    let repsType = recordedSets[0]?.reps_type || 'Reps';
+    const initialReps = setDraft?.reps ?? 1;
+    let repsType = setDraft?.reps_type || recordedSets[0]?.reps_type || 'Reps';
     const returnToSession = () => renderSession(session);
     const numberWheel = (
       id,
@@ -903,7 +892,7 @@
       'Reps value',
       initialReps,
       repsValues,
-    )}</div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'}>Done</button></div></form>`;
+    )}</div><button class="stamp-button" id="record-set" type="button" aria-label="Record set" title="Record set"><img src="images/stamp.png" alt="" aria-hidden="true"></button></div></div></div><div class="sets-field"><span class="field-label">Sets</span><div id="recorded-sets" class="recorded-sets" aria-live="polite"></div></div></div><div class="form-actions"><button type="button" class="secondary" id="cancel">Back</button><button class="primary" id="done" ${nameSaved ? '' : 'hidden'}>Done</button></div></form>`;
     const form = $('#form');
     const noteDialog = $('#exercise-note-dialog');
     const noteInput = $('#exercise-note-input');
@@ -913,10 +902,12 @@
       noteDialog.showModal();
       noteInput.focus();
     };
-    $('#cancel-exercise-note').onclick = () => noteDialog.close();
+    noteInput.oninput = () => {
+      noteDraft = noteInput.value;
+      saveExercise();
+    };
     $('#exercise-note-form').onsubmit = (event) => {
       event.preventDefault();
-      noteDraft = noteInput.value.trim();
       noteDialog.close();
     };
     function updateWeightSuggestions(name = $('#name-label', form)?.textContent || '') {
@@ -992,6 +983,12 @@
         form.classList.add('name-saved');
         $('.exercise-controls', form).hidden = false;
         $('#done', form).hidden = false;
+        saveExercise();
+        if (!data.names.some((saved) => normalizeExerciseName(saved) === normalizeExerciseName(name))) {
+          data.names.push(name);
+          save();
+          updateNames();
+        }
         if (focusLabel) label.focus();
       } else {
         const label = $('#name-label', form);
@@ -1016,6 +1013,9 @@
     }
     $('#name-container').addEventListener('click', (event) => {
       if (event.target.closest('#name-label')) toggleExerciseName();
+    });
+    $('#name-container').addEventListener('input', (event) => {
+      if (event.target.id === 'name') saveExercise();
     });
     $('#name-container').addEventListener('keydown', (event) => {
       if (event.target.id === 'name' && event.key === 'Enter' && !event.isComposing) {
@@ -1044,6 +1044,7 @@
       let selected = values.indexOf(Number(wheel.dataset.value));
       const updateSelected = (index) => {
         index = Math.max(0, Math.min(values.length - 1, index));
+        if (!wheel.isConnected || index === selected) return;
         items[selected].classList.remove('is-selected');
         selected = index;
         items[selected].classList.add('is-selected');
@@ -1052,6 +1053,7 @@
         wheel.setAttribute('aria-valuenow', String(value));
         wheel.setAttribute('aria-valuetext', String(value));
         onChange?.(value);
+        saveExercise();
       };
       viewport.addEventListener(
         'scroll',
@@ -1088,7 +1090,7 @@
       recordedSetsElement.innerHTML = recordedSets
         .map(
           (set, setIndex) =>
-            `<div class="recorded-set${selectedSetIndex === setIndex ? ' is-selected' : ''}" data-set-index="${setIndex}" role="button" tabindex="0" aria-pressed="${selectedSetIndex === setIndex}" aria-label="Set ${setIndex + 1}: ${loadText(set.weight)}, ${set.reps} ${set.reps_type}">${selectedSetIndex === setIndex ? `<button class="set-delete" type="button" data-delete-set="${setIndex}" aria-label="Delete set ${setIndex + 1}" title="Delete set">×</button>` : ''}<b>Set ${setIndex + 1}</b><span>${esc(loadText(set.weight))}</span><small>${set.reps} ${set.reps_type === 'Reps' ? `rep${Number(set.reps) === 1 ? '' : 's'}` : set.reps_type.toLowerCase()}</small></div>`,
+            `<div class="recorded-set${selectedSetIndex === setIndex ? ' is-selected' : ''}" data-set-index="${setIndex}" role="button" tabindex="0" aria-pressed="${selectedSetIndex === setIndex}" aria-label="Set ${setIndex + 1}: ${loadText(set.weight)}, ${set.reps} ${set.reps_type}">${selectedSetIndex === setIndex ? `<button class="set-delete" type="button" data-delete-set="${setIndex}" aria-label="Delete set ${setIndex + 1}" title="Delete set">×</button>` : ''}<button class="set-duplicate" type="button" data-duplicate-set aria-label="Duplicate set ${setIndex + 1}" title="Duplicate set">+</button><b>Set ${setIndex + 1}</b><span>${esc(loadText(set.weight))}</span><small>${set.reps} ${set.reps_type === 'Reps' ? `rep${Number(set.reps) === 1 ? '' : 's'}` : set.reps_type.toLowerCase()}</small></div>`,
         )
         .join('');
     }
@@ -1098,6 +1100,7 @@
       if (selectedSetIndex === setIndex) {
         selectedSetIndex = -1;
         renderRecordedSets();
+        saveExercise();
         return;
       }
       selectedSetIndex = setIndex;
@@ -1117,6 +1120,7 @@
       repsViewport.dispatchEvent(new Event('scroll'));
       repsViewport.style.removeProperty('scroll-behavior');
       renderRecordedSets();
+      saveExercise();
     }
     const repsTypeWheel = $('#reps-type-wheel');
     function selectRepsType(type, scroll = true) {
@@ -1132,7 +1136,9 @@
     }
     repsTypeWheel.addEventListener('click', (event) => {
       const option = event.target.closest('[data-reps-type]');
-      if (option) selectRepsType(option.dataset.repsType);
+      if (!option) return;
+      selectRepsType(option.dataset.repsType);
+      saveExercise();
     });
     repsTypeWheel.addEventListener('keydown', (event) => {
       const currentIndex = REPS_TYPES.indexOf(repsType);
@@ -1146,6 +1152,7 @@
       else return;
       event.preventDefault();
       selectRepsType(REPS_TYPES[nextIndex]);
+      saveExercise();
     });
     requestAnimationFrame(() => selectRepsType(repsType));
     recordedSetsElement.addEventListener('click', (event) => {
@@ -1163,6 +1170,17 @@
           if (selectedSetIndex >= 0) selectRecordedSet(selectedSetIndex);
         } else if (selectedSetIndex > setIndex) selectedSetIndex -= 1;
         renderRecordedSets();
+        saveExercise();
+        return;
+      }
+      if (event.target.closest('[data-duplicate-set]')) {
+        recordedSets.splice(setIndex + 1, 0, structuredClone(recordedSets[setIndex]));
+        if (selectedSetIndex > setIndex) selectedSetIndex += 1;
+        renderRecordedSets();
+        saveExercise();
+        recordedSetsElement
+          .querySelector(`[data-set-index="${setIndex + 1}"] [data-duplicate-set]`)
+          ?.focus();
         return;
       }
       selectRecordedSet(setIndex);
@@ -1225,6 +1243,7 @@
               option.setAttribute('aria-pressed', option === button),
             );
             up();
+          saveExercise();
           };
         });
         p.querySelectorAll('[data-plate-step]').forEach((button) => {
@@ -1234,6 +1253,7 @@
               Math.max(0, Number(count.textContent) + Number(button.dataset.plateStep)),
             );
             up();
+          saveExercise();
           };
         });
         $('#clear-barbell-plates', p).onclick = () => {
@@ -1241,6 +1261,7 @@
             count.textContent = '0';
           });
           up();
+          saveExercise();
         };
       } else if (t === 'dumbbell') {
         const eachValues = [
@@ -1266,6 +1287,7 @@
               option.setAttribute('aria-pressed', option === button),
             );
             up();
+          saveExercise();
           };
         });
         setupNumberWheel('each', eachValues, up);
@@ -1295,6 +1317,7 @@
               option.setAttribute('aria-pressed', option === button),
             );
             updateKettlebellTotal();
+            saveExercise();
           };
         });
         p.querySelectorAll('[data-kg]').forEach((button) => {
@@ -1303,12 +1326,18 @@
               option.setAttribute('aria-pressed', option === button),
             );
             updateKettlebellTotal();
+            saveExercise();
           };
         });
       }
       updateWeightSuggestions();
     }
-    form.querySelectorAll('[name=type]').forEach((r) => (r.onchange = panel));
+    form.querySelectorAll('[name=type]').forEach((radio) => {
+      radio.onchange = () => {
+        panel();
+        saveExercise();
+      };
+    });
     panel();
     renderRecordedSets();
     function readWeight() {
@@ -1355,46 +1384,46 @@
       ex.weight = structuredClone(entry.weight);
       selectedSetIndex = -1;
       renderRecordedSets();
+      saveExercise();
       recordedSetsElement
         .querySelector(`[data-set-index="${stampedIndex}"]`)
         ?.scrollIntoView({ block: 'nearest' });
     };
-    form.onsubmit = (e) => {
-      e.preventDefault();
+    function saveExercise() {
+      const name = preferredExerciseName(
+        $('#name', form)?.value ?? $('#name-label', form)?.textContent ?? '',
+      ) || session.exercises[index]?.name;
+      if (!name) return;
+      const setDraft = {
+        reps: Number($('#set-reps', form).dataset.value),
+        reps_type: repsType,
+        weight: readWeight(),
+        selectedSetIndex,
+      };
+      const latestSet = recordedSets.at(-1) ?? setDraft;
+      if (index === null) index = session.exercises.length;
+      session.exercises[index] = {
+        name,
+        note: noteDraft || null,
+        sets: recordedSets.length,
+        reps: latestSet.reps,
+        reps_type: latestSet.reps_type,
+        weight: latestSet.weight,
+        setEntries: recordedSets,
+        setDraft,
+      };
+      save();
+    }
+    form.onsubmit = (event) => {
+      event.preventDefault();
       if ($('#name', form)) {
         toggleExerciseName();
         return;
       }
-      if (!form.reportValidity()) return;
-      const weight = structuredClone(recordedSets.at(-1)?.weight ?? readWeight());
-      const name = preferredExerciseName(
-        $('#name', form)?.value ?? $('#name-label', form)?.textContent ?? '',
-      );
-      let result = {
-        name,
-        note: noteDraft.trim() || null,
-        sets: recordedSets.length,
-        reps: recordedSets.at(-1)?.reps ?? Number($('#set-reps', form).dataset.value),
-        reps_type: recordedSets.at(-1)?.reps_type ?? repsType,
-        weight,
-        setEntries: recordedSets,
-      };
-      if (index === null) session.exercises.push(result);
-      else session.exercises[index] = result;
-      if (
-        !data.names.some((n) => normalizeExerciseName(n) === normalizeExerciseName(name))
-      )
-        data.names.push(name);
-      save();
       returnToSession();
     };
   }
-  function finish(session, validateTimes) {
-    if (!validateTimes()) return;
-    if (!session.exercises.length && !confirm('Finish this session without exercises?'))
-      return;
-    if (!data.sessions.includes(session)) data.sessions.push(session);
-    save();
+  function finish() {
     active = null;
     location.hash = '#home';
     renderHome();
