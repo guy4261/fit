@@ -188,8 +188,11 @@
       return { sessions: [], names: [] };
     }
   }
-  function save() {
-    localStorage.setItem(KEY, JSON.stringify(data));
+  function save(nextData = data) {
+    const json = JSON.stringify(nextData);
+    if (localStorage.getItem(KEY) === json) return;
+    localStorage.setItem(KEY, json);
+    window.dispatchEvent(new Event('fit24-training-change'));
   }
   function esc(x) {
     return String(x ?? '').replace(
@@ -1631,7 +1634,7 @@
       ).values(),
     ];
     const importedData = { ...data, sessions: importedSessions, names };
-    localStorage.setItem(KEY, JSON.stringify(importedData));
+    save(importedData);
     data = importedData;
     $('#dialog-status').textContent = `Imported ${importedSessions.length} sessions.`;
     if (app) renderHome();

@@ -139,6 +139,11 @@ button {
   font: inherit;
   cursor: pointer;
 }
+#backup-actions .has-unsaved-changes {
+  background: var(--mint);
+  color: var(--green);
+  font-weight: 700;
+}
 #account-button:disabled,
 #backup-actions button:disabled {
   opacity: 0.6;
