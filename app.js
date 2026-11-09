@@ -688,7 +688,7 @@
   function renderSession(session) {
     save();
     const canReorder = session.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="${esc(session.title)} — Edit session name">${esc(session.title)}</button></h1></div><p>${session.exercises.length} exercises</p></div><div class="field session-start-field"><label for="session-start-time">Started At</label><input id="session-start-time" class="text-input" type="time" value="${esc(session.startTime || '')}"></div></div><div class="split-fields session-time-fields"><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(session.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${session.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${session.exercises.map((e, i) => `<article class="exercise-card" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><h3><button class="exercise-name-button" type="button" aria-label="Edit exercise: ${esc(e.name)}">${esc(e.name)}</button></h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${session.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="${esc(session.title)} — Edit session name">${esc(session.title)}</button></h1></div><p>${session.exercises.length} exercises</p></div><div class="field session-start-field"><label for="session-start-time">Started At</label><input id="session-start-time" class="text-input" type="time" value="${esc(session.startTime || '')}"></div></div><div class="split-fields session-time-fields"><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(session.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${session.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${session.exercises.map((e, i) => `<article class="exercise-card" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><h3><button class="exercise-name-button" type="button" aria-label="Edit exercise: ${esc(e.name)}">${esc(e.name)}</button></h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button><button class="scan-exercises" id="write-exercises" type="button">Write</button></div>${session.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     bindSessionTimeInputs(session);
     bindSessionName(session);
     $('#back').onclick = finish;
@@ -714,28 +714,28 @@
         renderSession(session);
       });
     });
-    $('#scan-workout-screen')?.addEventListener('click', () => {
-      ExercisePhoto.openLive((names) => {
-        for (const name of names) {
-          session.exercises.push({
-            name,
-            sets: 0,
-            reps: 0,
-            setEntries: [],
-            weight: { type: 'body' },
-          });
-          if (
-            !data.names.some(
-              (saved) => normalizeExerciseName(saved) === normalizeExerciseName(name),
-            )
+    const addExerciseNames = (names) => {
+      for (const name of names) {
+        session.exercises.push({
+          name,
+          sets: 0,
+          reps: 0,
+          setEntries: [],
+          weight: { type: 'body' },
+        });
+        if (
+          !data.names.some(
+            (saved) => normalizeExerciseName(saved) === normalizeExerciseName(name),
           )
-            data.names.push(name);
-        }
-        save();
-        updateNames();
-        renderSession(session);
-      });
-    });
+        )
+          data.names.push(name);
+      }
+      save();
+      updateNames();
+      renderSession(session);
+    };
+    $('#scan-workout-screen').onclick = () => ExercisePhoto.openLive(addExerciseNames);
+    $('#write-exercises').onclick = () => openWriteExercises(addExerciseNames);
     if (canReorder)
       $('#scan-exercises')?.addEventListener('click', () =>
         showSessionQr(session.exercises),
@@ -829,6 +829,118 @@
           renderSession(session);
         }),
     );
+  }
+  function exerciseNameDistance(a, b) {
+    let row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 0; i < a.length; i++) {
+      const next = [i + 1];
+      for (let j = 0; j < b.length; j++) {
+        next.push(Math.min(row[j + 1] + 1, next[j] + 1, row[j] + (a[i] !== b[j])));
+      }
+      row = next;
+    }
+    return row[b.length];
+  }
+  function openWriteExercises(onAdd) {
+    const known = new Map(
+      [...STANDARD_EXERCISES, ...data.names].map((name) => [
+        normalizeExerciseName(name),
+        preferredExerciseName(name),
+      ]),
+    );
+    const closestName = (name) => {
+      const key = normalizeExerciseName(name);
+      if (known.has(key)) return null;
+      let closest = null;
+      let best = 0.3;
+      for (const [candidate, label] of known) {
+        const length = Math.max(key.length, candidate.length);
+        if (Math.abs(key.length - candidate.length) > length * best) continue;
+        const score = exerciseNameDistance(key, candidate) / length;
+        if (score <= best) {
+          best = score;
+          closest = label;
+        }
+      }
+      return closest;
+    };
+    const applePhone = /iPhone|iPod|iPad/i.test(navigator.userAgent);
+    const hint = applePhone ? 'New Line , Stop Dictation' : 'New Line, Stop';
+    const dialog = document.createElement('dialog');
+    dialog.className = 'data-dialog write-exercises-dialog';
+    dialog.setAttribute('aria-labelledby', 'write-exercises-title');
+    dialog.innerHTML = `<h2 id="write-exercises-title">Write exercises</h2>
+      <form>
+        <div class="field">
+          <label for="exercise-dictation">🎤 ${hint}</label>
+          <textarea id="exercise-dictation" class="text-input" lang="en" rows="4"
+            placeholder="One exercise per line" autofocus></textarea>
+        </div>
+        <div class="write-exercise-review"></div>
+        <div class="write-exercise-actions">
+          <button type="submit" class="primary" disabled>Add All</button>
+          <button type="button" class="secondary" data-cancel>Cancel</button>
+        </div>
+      </form>`;
+    const input = $('textarea', dialog);
+    const review = $('.write-exercise-review', dialog);
+    const add = $('[type="submit"]', dialog);
+    let rows = [];
+    const updateAdd = () => {
+      add.disabled = !rows.some((row) => row && !row.skip);
+    };
+    input.oninput = () => {
+      rows = input.value.split(/\r?\n/).map((line, index) => {
+        const name = line.trim();
+        if (!name) return null;
+        if (rows[index]?.name === name) return rows[index];
+        return { name, match: closestName(name), useMatch: false, skip: false };
+      });
+      review.innerHTML = rows.map((row, index) => {
+        if (!row) return '';
+        const original = row.match
+          ? `<label><input type="radio" name="exercise-${index}" value="original" ${row.useMatch ? '' : 'checked'}> ${esc(row.name)}</label>`
+          : `<span>${esc(row.name)}</span>`;
+        const match = row.match
+          ? `<label><input type="radio" name="exercise-${index}" value="match" ${row.useMatch ? 'checked' : ''}> ${esc(row.match)}</label>`
+          : '';
+        return `<div class="write-exercise-row" data-row="${index}">
+          <fieldset class="write-exercise-options" aria-label="Exercise name" ${row.skip ? 'disabled' : ''}>
+            ${original}${match}
+          </fieldset>
+          <button type="button" class="write-exercise-skip" aria-label="Skip ${esc(row.name)}"
+            aria-pressed="${row.skip}">×</button>
+        </div>`;
+      }).join('');
+      updateAdd();
+    };
+    review.onchange = (event) => {
+      const row = event.target.closest('[data-row]');
+      rows[row.dataset.row].useMatch = event.target.value === 'match';
+    };
+    review.onclick = (event) => {
+      const button = event.target.closest('.write-exercise-skip');
+      if (!button) return;
+      const row = button.closest('[data-row]');
+      const item = rows[row.dataset.row];
+      item.skip = !item.skip;
+      button.setAttribute('aria-pressed', item.skip);
+      $('fieldset', row).disabled = item.skip;
+      updateAdd();
+    };
+    $('form', dialog).onsubmit = (event) => {
+      event.preventDefault();
+      const names = rows
+        .filter((row) => row && !row.skip)
+        .map((row) => row.useMatch ? row.match : row.name);
+      if (!names.length) return;
+      dialog.close();
+      onAdd(names);
+    };
+    $('[data-cancel]', dialog).onclick = () => dialog.close();
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    document.body.append(dialog);
+    dialog.showModal();
   }
   function exerciseForm(index = null, session = active) {
     let ex =

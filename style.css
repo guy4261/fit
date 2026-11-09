@@ -2005,8 +2005,50 @@ dialog::backdrop {
   }
 }
 
-.exercise-actions .live-scan-action {
-  grid-column: 1 / -1;
+.write-exercises-dialog textarea {
+  display: block;
+  resize: vertical;
+  font-size: 16px;
+}
+.write-exercise-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.write-exercise-options {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow-wrap: anywhere;
+}
+.write-exercise-options:disabled {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.write-exercise-skip {
+  flex: 0 0 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #b52e36;
+  color: #fff;
+  font-size: 20px;
+}
+.write-exercise-skip[aria-pressed='true'] {
+  opacity: 0.55;
+}
+.write-exercise-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
 }
 .build-info {
   margin-top: 28px;
