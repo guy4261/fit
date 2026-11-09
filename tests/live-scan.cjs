@@ -221,7 +221,7 @@ const assert = require('node:assert/strict');
       'Deadlift',
     ]);
     await page.waitForFunction(() => window.cameraStopped && window.workerStopped);
-    await page.locator('[data-edit="0"]').click();
+    await page.locator('[data-exercise-index="0"]').click();
     assert.equal(await page.locator('#recorded-sets .recorded-set').count(), 0);
     await page.goto('http://localhost:8080/');
     await page.locator('#start').click();

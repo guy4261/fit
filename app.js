@@ -688,13 +688,10 @@
   function renderSession(session) {
     save();
     const canReorder = session.exercises.length > 0;
-    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="${esc(session.title)} — Edit session name">${esc(session.title)}</button></h1></div><p>${session.exercises.length} exercises</p></div><div class="field session-start-field"><label for="session-start-time">Session start</label><input id="session-start-time" class="text-input" type="time" value="${esc(session.startTime || '')}"></div><button class="secondary session-actions" id="finish">Finish</button></div><div class="split-fields session-time-fields"><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(session.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${session.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${session.exercises.map((e, i) => `<article class="exercise-card${reorderMode ? ' is-draggable' : ''}" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><button class="small-action exercise-icon-action" data-edit="${i}" aria-label="Edit exercise" title="Edit exercise"><span aria-hidden="true">✏️</span></button><h3>${esc(e.name)}</h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div><span class="load-pill">${esc(loadText(e.weight))}</span></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${session.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
+    app.innerHTML = `<div class="session-head"><button class="back" id="back">‹</button><div class="session-heading"><div class="session-name-row"><h1 id="session-name"><button id="session-name-label" class="session-name-label" type="button" aria-label="Edit session name" title="${esc(session.title)} — Edit session name">${esc(session.title)}</button></h1></div><p>${session.exercises.length} exercises</p></div><div class="field session-start-field"><label for="session-start-time">Started At</label><input id="session-start-time" class="text-input" type="time" value="${esc(session.startTime || '')}"></div></div><div class="split-fields session-time-fields"><div class="field"><label for="session-end-time">Session end</label><input id="session-end-time" class="text-input" type="time" value="${esc(session.endTime || '')}"></div></div><div class="section-title"><h2>Exercises</h2><div class="exercise-count-controls"><span>${session.exercises.length} added</span><button class="lock-order" id="reorder" type="button" aria-label="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" title="${reorderMode ? 'Unlock exercise order' : 'Lock exercise order'}" ${canReorder ? '' : 'disabled'}>${reorderMode ? '🔓' : '🔒'}</button>${reorderMode ? '<div class="rotate-controls"><button class="rotate-action" id="rotate-exercises" type="button" aria-label="Move last exercise to the top" title="Move last exercise to the top" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↻</button><button class="rotate-action" id="rotate-exercises-reverse" type="button" aria-label="Move first exercise to the bottom" title="Move first exercise to the bottom" ' + (session.exercises.length < 2 ? 'disabled' : '') + '>↺</button></div>' : ''}</div></div><div class="exercise-list${reorderMode ? ' is-reordering' : ''}" id="exercise-list">${session.exercises.map((e, i) => `<article class="exercise-card" data-exercise-index="${i}"><div class="exercise-row"><span class="drag-handle" aria-hidden="true">⠿</span><div class="exercise-card-head"><div class="exercise-card-content"><div class="exercise-title-row"><h3><button class="exercise-name-button" type="button" aria-label="Edit exercise: ${esc(e.name)}">${esc(e.name)}</button></h3><button class="small-action delete exercise-icon-action" data-remove="${i}" aria-label="Remove exercise" title="Remove exercise"><span aria-hidden="true">🗑️</span></button></div>${exerciseNoteHtml(e)}${setSummaryHtml(e)}</div></div></div></article>`).join('')}</div><div class="exercise-actions"><button class="add-exercise" id="add"><span>＋</span> Add exercise</button><button class="scan-exercises" id="scan-exercises" type="button"><span aria-hidden="true">▦</span> ${canReorder ? 'Show QR' : 'Scan QR'}</button><button class="scan-exercises" id="import-exercise-photo" type="button" aria-label="Import exercises from a photo" title="Import exercises from a photo"><span aria-hidden="true">📷</span> Photo</button><button class="scan-exercises live-scan-action" id="scan-workout-screen" type="button"><span aria-hidden="true">◎</span> Scan screen</button></div>${session.exercises.length ? '<div class="finish-bar"><button class="primary" id="finish-bottom">Finish session &nbsp; →</button></div>' : ''}`;
     bindSessionTimeInputs(session);
     bindSessionName(session);
-    $('#back').onclick = () => {
-      location.hash = '#home';
-      renderHome();
-    };
+    $('#back').onclick = finish;
     $('#reorder').onclick = () => {
       reorderMode = !reorderMode;
       renderSession(session);
@@ -755,7 +752,6 @@
       session.exercises.push(session.exercises.shift());
       renderSession(session);
     });
-    $('#finish').onclick = finish;
     $('#finish-bottom')?.addEventListener('click', finish);
     if (reorderMode) {
       const list = $('#exercise-list');
@@ -763,7 +759,7 @@
       let pointerStartY = 0;
       let pointerMoved = false;
       let pointerCard = null;
-      list.querySelectorAll('.exercise-card').forEach((card) => {
+      app.querySelectorAll('.exercise-card').forEach((card) => {
         const handle = $('.drag-handle', card);
         handle.addEventListener('pointerdown', (event) => {
           if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -820,12 +816,15 @@
         handle.addEventListener('pointercancel', finishPointerReorder);
       });
     }
-    app
-      .querySelectorAll('[data-edit]')
-      .forEach((b) => (b.onclick = () => exerciseForm(+b.dataset.edit, session)));
+    app.querySelectorAll('.exercise-card').forEach((card) => {
+      card.onclick = () => {
+        if (card.isConnected) exerciseForm(Number(card.dataset.exerciseIndex), session);
+      };
+    });
     app.querySelectorAll('[data-remove]').forEach(
       (b) =>
-        (b.onclick = () => {
+        (b.onclick = (event) => {
+          event.stopPropagation();
           session.exercises.splice(+b.dataset.remove, 1);
           renderSession(session);
         }),
